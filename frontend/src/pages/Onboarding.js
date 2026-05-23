@@ -20,46 +20,42 @@ import {
   ArrowLeft,
   Check,
   Lock,
-  UserCheck
+  UserCheck,
+  Lightbulb,
+  PiggyBank
 } from 'lucide-react';
 
 const DEFAULT_ASPECTS = [
-  'Health & Fitness',
-  'Finance & Wealth',
-  'Relationships & Family',
-  'Career & Work',
+  'Career',
+  'Health & Wellness',
+  'Relationships',
   'Personal Growth',
-  'Fun & Recreation',
-  'Environment',
-  'Community',
-  'Spirituality',
-  'Partner & Love',
+  'Finance',
+  'Joy & Leisure',
+  'Physical Environment',
+  'Budgeting & Giving',
 ];
 
 const ASPECT_ICONS = {
-  'Health & Fitness': Heart,
-  'Finance & Wealth': Coins,
-  'Relationships & Family': Users,
-  'Career & Work': Briefcase,
-  'Personal Growth': TrendingUp,
-  'Fun & Recreation': Smile,
-  'Environment': Home,
-  'Community': Globe,
-  'Spirituality': Sparkles,
-  'Partner & Love': User,
+  'Career': Briefcase,
+  'Health & Wellness': Heart,
+  'Relationships': Users,
+  'Personal Growth': Lightbulb,
+  'Finance': Coins,
+  'Joy & Leisure': Smile,
+  'Physical Environment': Home,
+  'Budgeting & Giving': PiggyBank,
 };
 
 const ASPECT_QUESTIONS = {
-  'Health & Fitness': 'What does peak physical vitality and fitness look like for you?',
-  'Finance & Wealth': 'What does financial peace of mind and abundance mean to you?',
-  'Relationships & Family': 'Describe your ideal relationships with family, friends, and loved ones.',
-  'Career & Work': 'What is your ultimate professional impact, achievement, or work environment?',
+  'Career': 'What is your ultimate professional impact, achievement, or work environment?',
+  'Health & Wellness': 'What does peak physical vitality, wellness, and energy look like for you?',
+  'Relationships': 'Describe your ideal relationships with family, partners, and loved ones.',
   'Personal Growth': 'In what ways do you want to learn, grow, or expand your mind and skills?',
-  'Fun & Recreation': 'How do you want to play, rest, create, or enjoy your life\'s leisure time?',
-  'Environment': 'Describe your ideal living space, workspace, and immediate surroundings.',
-  'Community': 'How do you want to contribute, connect, and serve the society or groups around you?',
-  'Spirituality': 'What does deep inner peace, connection, and spiritual alignment feel like to you?',
-  'Partner & Love': 'What does a deep, loving, and supportive romantic partnership look like to you?',
+  'Finance': 'What does financial security, abundance, and peace of mind look like for you?',
+  'Joy & Leisure': 'How do you want to play, recharge, and enjoy your life\'s recreation and hobbies?',
+  'Physical Environment': 'Describe your ideal living space, workspace, and physical surroundings.',
+  'Budgeting & Giving': 'How do you want to manage your budget and give back to causes or communities?',
 };
 
 function getAspectIcon(name, sizeClass = "w-6 h-6") {

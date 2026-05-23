@@ -4,8 +4,11 @@ import WheelVisualization from '../components/ui/WheelVisualization.js';
 import { useWheel } from '../hooks/useWheel.js';
 import { getJournals, getTasks, toggleTaskCompletion, getUserState, updateUserState } from '../utils/api.js';
 import { useUser } from '../contexts/UserContext.js';
-import { BookOpen, MessageSquare, Disc, ClipboardCheck, CheckCircle2, Circle, Trophy } from 'lucide-react';
+import { BookOpen, MessageSquare, Disc, ClipboardCheck, CheckCircle2, Circle, Trophy, Target, Lightbulb, Star, Flame, Smile } from 'lucide-react';
 import EmotionSelectorSheet from '../components/ui/EmotionSelectorSheet.js';
+import IconBadge from '../components/ui/IconBadge.js';
+import MoodSlider from '../components/ui/MoodSlider.js';
+import MoodBloom, { getMoodTheme } from '../components/ui/MoodBloom.js';
 
 export default function Dashboard() {
   const { aspects, getAverageScore } = useWheel();
@@ -190,6 +193,9 @@ export default function Dashboard() {
 
   const highestAspect = getHighestAspect();
 
+  const currentMoodTier = activeMoodTier || mood || 'okay';
+  const moodTheme = getMoodTheme(currentMoodTier);
+
   return (
     <div className="relative min-h-screen bg-gradient-to-tr from-indigo-100/80 via-purple-50/90 to-rose-100/80 py-8 px-4 flex items-start justify-center overflow-hidden">
       
@@ -223,73 +229,26 @@ export default function Dashboard() {
           </div>
 
           {/* Mood Check-In Slider Panel */}
-          <div className="mt-5 bg-white/40 backdrop-blur-sm border border-gray-200/30 rounded-2xl p-4.5 ring-1 ring-white/60 flex flex-col gap-2.5">
-            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
-              <span>Rough 😢</span>
-              <span className="opacity-60">Okay 😐</span>
-              <span>Great 😁</span>
+          <div className={`mt-5 backdrop-blur-sm rounded-2xl p-4.5 ring-1 flex gap-4 items-center transition-all duration-300 ${moodTheme.bg} ${moodTheme.border} ${moodTheme.ring} ${moodTheme.shadow}`}>
+            <div className="shrink-0 flex items-center justify-center bg-white/60 backdrop-blur-xs p-2 rounded-2xl border border-white/40 shadow-sm">
+              <MoodBloom mood={currentMoodTier} size={52} />
             </div>
-            <input
-              type="range"
-              min="1"
-              max="5"
-              step="1"
-              value={pleasantness}
-              onChange={(e) => setPleasantness(Number(e.target.value))}
-              onPointerUp={() => {
-                const moodMap = { 1: 'rough', 2: 'low', 3: 'okay', 4: 'good', 5: 'great' };
-                const selectedVal = moodMap[pleasantness] || 'okay';
-                setActiveMoodTier(selectedVal);
-                if (moodLog && moodLog.mood === selectedVal) {
-                  setSelectedTags(moodLog.tags || []);
-                } else {
-                  setSelectedTags([]);
-                }
-                setShowMoodModal(true);
-              }}
-              onTouchEnd={() => {
-                const moodMap = { 1: 'rough', 2: 'low', 3: 'okay', 4: 'good', 5: 'great' };
-                const selectedVal = moodMap[pleasantness] || 'okay';
-                setActiveMoodTier(selectedVal);
-                if (moodLog && moodLog.mood === selectedVal) {
-                  setSelectedTags(moodLog.tags || []);
-                } else {
-                  setSelectedTags([]);
-                }
-                setShowMoodModal(true);
-              }}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-rose-400 via-amber-350 to-emerald-450 focus:outline-none"
-              style={{
-                WebkitAppearance: 'none',
-              }}
-            />
-            {/* Custom Range Input Track Styling */}
-            <style>{`
-              input[type='range']::-webkit-slider-thumb {
-                -webkit-appearance: none;
-                appearance: none;
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                background: #1e293b;
-                border: 2px solid white;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                cursor: pointer;
-                transition: transform 0.1s ease;
-              }
-              input[type='range']::-webkit-slider-thumb:hover {
-                transform: scale(1.1);
-              }
-              input[type='range']::-moz-range-thumb {
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                background: #1e293b;
-                border: 2px solid white;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                cursor: pointer;
-              }
-            `}</style>
+            
+            <div className="flex-1">
+              <MoodSlider 
+                initialPleasantness={pleasantness} 
+                onChange={(mood, val) => {
+                  setPleasantness(val);
+                  setActiveMoodTier(mood);
+                  if (moodLog && moodLog.mood === mood) {
+                    setSelectedTags(moodLog.tags || []);
+                  } else {
+                    setSelectedTags([]);
+                  }
+                  setShowMoodModal(true);
+                }} 
+              />
+            </div>
           </div>
 
           {/* Logged Tags list below check-in row if any exist */}
@@ -308,7 +267,7 @@ export default function Dashboard() {
           <div className="bg-gradient-to-br from-amber-50 to-orange-100/90 border border-amber-200/50 rounded-3xl p-5 relative overflow-hidden shadow-sm mb-6 flex flex-col justify-between ring-1 ring-white/60">
             <div className="max-w-[80%] z-10">
               <span className="text-[9px] font-black text-amber-700 uppercase tracking-widest leading-none bg-amber-100/60 border border-amber-200/40 px-2.5 py-1 rounded-full flex items-center gap-1 w-fit">
-                ⭐ Top Area
+                <Star className="w-3 h-3" /> Top Area
               </span>
               <h2 className="text-lg font-black text-slate-800 mt-3 leading-tight flex items-baseline gap-2">
                 {highestAspect.name}
@@ -446,7 +405,7 @@ export default function Dashboard() {
                     state.memory.goals.slice(0, 3).map((goal, idx) => (
                       <div key={idx} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm p-4 border border-gray-100/50 flex items-start gap-3 ring-1 ring-white/60 hover:scale-[1.01] transition-transform">
                         <div className="w-6 h-6 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[10px]">🎯</span>
+                          <Target className="w-3 h-3 text-emerald-600" />
                         </div>
                         <span className="text-[11px] font-semibold text-slate-700 leading-relaxed">
                           {goal}
@@ -482,7 +441,7 @@ export default function Dashboard() {
                     state.memory.coach_advice.slice(0, 3).map((advice, idx) => (
                       <div key={idx} className="bg-gradient-to-br from-rose-50/90 to-pink-50/90 rounded-2xl shadow-sm p-4 border border-rose-100/40 flex items-start gap-3 ring-1 ring-white/50 hover:scale-[1.01] transition-transform">
                         <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[10px] text-pink-600">💡</span>
+                          <Lightbulb className="w-3 h-3 text-pink-600" />
                         </div>
                         <p className="text-[11px] font-semibold text-slate-700 leading-relaxed">
                           {advice}
@@ -568,7 +527,7 @@ export default function Dashboard() {
                   {/* Top Reflected Aspect */}
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100/50 shadow-inner">
-                      <span className="text-lg">💭</span>
+                      <MessageSquare className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div>
                       <p className="text-[9px] font-black text-indigo-500 uppercase tracking-wider leading-none">Most Reflected</p>
@@ -590,7 +549,7 @@ export default function Dashboard() {
                   {/* Total Reflections */}
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center border border-amber-100/50 shadow-inner">
-                      <span className="text-lg">🔥</span>
+                      <Flame className="w-5 h-5 text-amber-600" />
                     </div>
                     <div>
                       <p className="text-[9px] font-black text-amber-600 uppercase tracking-wider leading-none">Total Reflections</p>

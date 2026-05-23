@@ -69,7 +69,9 @@ export default function Coach() {
           if (prev.startsWith(`${displayName}:`)) {
             return nextWord;
           }
-          return prev ? `${prev} ${nextWord}` : nextWord;
+          const combined = prev ? `${prev} ${nextWord}` : nextWord;
+          const sentences = combined.split(/(?<=[.!?])\s+/);
+          return sentences.slice(-2).join(' ');
         });
       }
     }, 320);
@@ -128,13 +130,7 @@ export default function Coach() {
     silenceTimeoutRef.current = setTimeout(() => {
       setIsHeld(true);
     }, 10000);
-    setTimeout(() => {
-      setCurrentSubtitles((prev) => {
-        if (prev.startsWith(`${displayName}:`)) return prev;
-        return '';
-      });
-    }, 2500);
-  }, [displayName, showTextInput, isSpeaking]);
+  }, [showTextInput, isSpeaking]);
 
   useEffect(() => {
     if (showTextInput || isSpeaking) {

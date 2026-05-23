@@ -19,8 +19,8 @@ export default function Navbar({
     navigate('/');
   };
 
-  // Hide completely on the journal page to avoid navigation collisions
-  if (location.pathname === '/journal') {
+  // Hide completely on the journal and wheel pages to avoid navigation collisions
+  if (location.pathname === '/journal' || location.pathname === '/wheel') {
     return null;
   }
 

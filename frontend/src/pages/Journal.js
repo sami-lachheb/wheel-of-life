@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext.js';
 import { createJournal, getJournalPrompt, getJournalSuggestion, getJournalReflection } from '../utils/api.js';
-import { ArrowLeft, Home, Sparkles, ChevronRight, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Home, Sparkles, ChevronRight, HelpCircle, Lightbulb, MessageSquare, MapPin, Smile, Mic } from 'lucide-react';
 
 const ASPECTS = ['Health & Fitness', 'Finance & Wealth', 'Relationships & Family', 'Career & Work', 'Personal Growth', 'Fun & Recreation', 'Environment', 'Community', 'Spirituality', 'Partner & Love'];
 import EmotionSelectorSheet from '../components/ui/EmotionSelectorSheet.js';
@@ -356,7 +356,7 @@ export default function Journal() {
         {prompt && promptCollapsed && (
           <div className="mb-4 bg-indigo-50/30 border border-indigo-100/20 rounded-2xl p-3 flex justify-between items-center animate-fade-in">
             <div className="flex items-start gap-2.5 pr-2">
-              <span className="text-xs mt-0.5">💡</span>
+              <Lightbulb className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
               <p className="text-[11px] font-semibold text-slate-600 leading-snug">
                 {prompt}
               </p>
@@ -415,7 +415,7 @@ export default function Journal() {
         <div className="fixed bottom-24 left-0 right-0 max-w-[430px] mx-auto w-full px-6 z-40 animate-slide-up pointer-events-auto">
           <div className="w-full bg-indigo-600 text-white rounded-2xl p-3 shadow-xl flex items-center justify-between border border-indigo-500/50">
             <div className="flex items-center gap-2.5">
-              <span className="text-base">💭</span>
+              <MessageSquare className="w-4 h-4 text-white/90 shrink-0" />
               <span className="text-xs font-black uppercase tracking-wider">
                 Feeling {detectedEmotion}?
               </span>
@@ -486,7 +486,7 @@ export default function Journal() {
       {showLocationInput && (
         <div className="fixed bottom-24 left-0 right-0 max-w-[430px] mx-auto w-full px-6 z-40 pointer-events-none">
           <div className="w-full bg-white/90 backdrop-blur-md border border-gray-200/30 rounded-2xl p-3 shadow-xl pointer-events-auto flex items-center gap-2 ring-1 ring-white/60">
-            <span className="text-lg">📍</span>
+            <MapPin className="w-4 h-4 text-slate-500 shrink-0" />
             <input
               type="text"
               value={location}
@@ -521,7 +521,7 @@ export default function Journal() {
             onClick={() => setShowEmotionSheet(true)}
             className="flex flex-col items-center justify-center w-12 h-12 rounded-full hover:bg-white/10 transition-colors text-white relative"
           >
-            <span className="text-xl">😊</span>
+            <Smile className="w-5 h-5" />
             {selectedEmotions.length > 0 && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-gold rounded-full border border-slate-900 animate-pulse" />
             )}
@@ -531,7 +531,7 @@ export default function Journal() {
             onClick={() => setShowLocationInput(!showLocationInput)}
             className="flex flex-col items-center justify-center w-12 h-12 rounded-full hover:bg-white/10 transition-colors text-white relative"
           >
-            <span className="text-xl">📍</span>
+            <MapPin className="w-5 h-5" />
             {location && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-gold rounded-full border border-slate-900" />
             )}
@@ -541,14 +541,14 @@ export default function Journal() {
             disabled
             className="flex flex-col items-center justify-center w-12 h-12 rounded-full opacity-35 text-white cursor-not-allowed"
           >
-            <span className="text-xl">🎙️</span>
+            <Mic className="w-5 h-5" />
           </button>
 
           <button
             onClick={() => setShowAspectsSheet(true)}
             className="flex flex-col items-center justify-center w-12 h-12 rounded-full hover:bg-white/10 transition-colors text-white relative"
           >
-            <span className="text-xl">✨</span>
+            <Sparkles className="w-5 h-5" />
             {selectedAspects.length > 0 && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-gold rounded-full border border-slate-900 animate-pulse" />
             )}

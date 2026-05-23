@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import MoodBloom, { getMoodTheme, PALETTES } from './MoodBloom.js';
 
 const emotionMap = {
   rough: ['Lonely', 'Overwhelmed', 'Angry', 'Sad', 'Drained', 'Anxious', 'Frustrated', 'Hopeless', 'Hurt', 'Guilty', 'Jealous', 'Scared', 'Stressed', 'Worried'],
@@ -41,17 +42,6 @@ const getPleasantnessLabel = (level) => {
     case 4: return 'Slightly Pleasant';
     case 5: return 'Very Pleasant';
     default: return 'Neutral';
-  }
-};
-
-const getBlossomColorClass = (level) => {
-  switch (level) {
-    case 1: return 'from-rose-400 to-pink-500 text-rose-500 bg-rose-50 border-rose-200/50';
-    case 2: return 'from-amber-300 to-orange-400 text-amber-500 bg-amber-50 border-amber-200/50';
-    case 3: return 'from-slate-300 to-slate-400 text-slate-500 bg-slate-50 border-slate-200/50';
-    case 4: return 'from-indigo-300 to-violet-400 text-indigo-500 bg-indigo-50 border-indigo-200/50';
-    case 5: return 'from-emerald-300 to-teal-400 text-emerald-500 bg-emerald-50 border-emerald-200/50';
-    default: return 'from-slate-300 to-slate-400 text-slate-500 bg-slate-50 border-slate-200/50';
   }
 };
 
@@ -97,6 +87,8 @@ export default function EmotionSelectorSheet({ isOpen, onClose, onSave, initialM
   if (!isOpen) return null;
 
   const currentMoodKey = mapLevelToMood(pleasantness);
+  const moodColors = PALETTES[currentMoodKey] || PALETTES.okay;
+  const theme = getMoodTheme(currentMoodKey);
   const descriptorPool = emotionMap[currentMoodKey] || [];
   const visibleDescriptors = showAllTags ? descriptorPool : descriptorPool.slice(0, 10);
 
@@ -122,33 +114,13 @@ export default function EmotionSelectorSheet({ isOpen, onClose, onSave, initialM
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-b from-indigo-50 via-white to-violet-50 z-50 flex flex-col justify-between p-6 max-w-[430px] mx-auto animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex flex-col justify-between p-6 max-w-[430px] mx-auto animate-fade-in overflow-y-auto" style={{ backgroundColor: '#ffffff' }}>
+      {/* Mood gradient overlay — sits above white, below content */}
+      <div
+        className="absolute inset-0 pointer-events-none transition-all duration-700"
+        style={{ background: `linear-gradient(to bottom, ${moodColors.primary}30, ${moodColors.secondary}18 70%, transparent)` }}
+      />
       
-      {/* Blossom Rotation CSS Styles */}
-      <style>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes spin-reverse-slow {
-          from { transform: rotate(360deg); }
-          to { transform: rotate(0deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 20s linear infinite;
-        }
-        .animate-spin-reverse-slow {
-          animation: spin-reverse-slow 15s linear infinite;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.25s ease-out forwards;
-        }
-      `}</style>
-
       {/* Header */}
       <div className="flex justify-between items-center z-10 w-full">
         {step > 1 ? (
@@ -186,12 +158,21 @@ export default function EmotionSelectorSheet({ isOpen, onClose, onSave, initialM
             Choose how you're feeling right now
           </h3>
           
-          {/* Organic Concentric 3D Morphing Pulsing Flower Shape */}
-          <div className="relative w-56 h-56 flex items-center justify-center mx-auto my-12 transition-all duration-500 transform hover:scale-105">
-            <div className={`absolute w-52 h-52 rounded-[42%_58%_70%_30%_/_45%_45%_55%_55%] bg-gradient-to-tr ${getBlossomColorClass(pleasantness)} opacity-10 animate-spin-slow blur-xl transition-all duration-500`} />
-            <div className={`absolute w-40 h-40 rounded-[58%_42%_38%_62%_/_50%_60%_40%_50%] bg-gradient-to-tr ${getBlossomColorClass(pleasantness)} opacity-20 animate-spin-reverse-slow blur-lg transition-all duration-500`} />
-            <div className={`absolute w-28 h-28 rounded-full bg-gradient-to-tr ${getBlossomColorClass(pleasantness)} opacity-35 animate-pulse blur-md transition-all duration-500`} />
-            <div className={`absolute w-20 h-20 rounded-full bg-gradient-to-tr ${getBlossomColorClass(pleasantness)} opacity-85 shadow-lg flex items-center justify-center text-3xl select-none transition-all duration-500`} />
+          {/* MoodBloom Geometric Shape with Ambient Glow */}
+          <div className="relative w-56 h-56 flex items-center justify-center mx-auto my-12 transition-all duration-500">
+            {/* Outer ambient glow blob */}
+            <div
+              className="absolute w-72 h-72 rounded-full blur-[80px] transition-all duration-1000 animate-pulse"
+              style={{ backgroundColor: moodColors.glow }}
+            />
+            {/* Inner tighter glow blob */}
+            <div
+              className="absolute w-48 h-48 rounded-full blur-[50px] transition-all duration-700"
+              style={{ backgroundColor: `${moodColors.primary}25` }}
+            />
+            <div className="relative z-10">
+              <MoodBloom mood={currentMoodKey} size={180} />
+            </div>
           </div>
 
           <div className="w-full text-center mb-8">
@@ -228,12 +209,17 @@ export default function EmotionSelectorSheet({ isOpen, onClose, onSave, initialM
       {step === 2 && (
         <div className="flex-1 flex flex-col justify-start py-6 z-10">
           <div className="text-center mb-4">
-            {/* Small flower top indicator */}
-            <div className="relative w-16 h-16 flex items-center justify-center mx-auto mb-2">
-              <div className={`absolute w-14 h-14 rounded-[42%_58%_70%_30%_/_45%_45%_55%_55%] bg-gradient-to-tr ${getBlossomColorClass(pleasantness)} opacity-10 animate-spin-slow blur-md`} />
-              <div className={`absolute w-10 h-10 rounded-full bg-gradient-to-tr ${getBlossomColorClass(pleasantness)} opacity-80 shadow-inner`} />
+            {/* Small MoodBloom indicator with mini glow */}
+            <div className="relative inline-flex items-center justify-center">
+              <div
+                className="absolute w-20 h-20 rounded-full blur-[25px] transition-all duration-700"
+                style={{ backgroundColor: moodColors.glow }}
+              />
+              <div className="relative z-10">
+                <MoodBloom mood={currentMoodKey} size={48} />
+              </div>
             </div>
-            <h3 className="text-lg font-black text-slate-800 leading-none mb-4">
+            <h3 className="text-lg font-black text-slate-800 leading-none mb-4 mt-3">
               {getPleasantnessLabel(pleasantness)}
             </h3>
             
@@ -296,12 +282,17 @@ export default function EmotionSelectorSheet({ isOpen, onClose, onSave, initialM
       {step === 3 && (
         <div className="flex-1 flex flex-col justify-start py-6 z-10">
           <div className="text-center mb-4">
-            {/* Small flower top indicator */}
-            <div className="relative w-16 h-16 flex items-center justify-center mx-auto mb-2">
-              <div className={`absolute w-14 h-14 rounded-[42%_58%_70%_30%_/_45%_45%_55%_55%] bg-gradient-to-tr ${getBlossomColorClass(pleasantness)} opacity-10 animate-spin-slow blur-md`} />
-              <div className={`absolute w-10 h-10 rounded-full bg-gradient-to-tr ${getBlossomColorClass(pleasantness)} opacity-80 shadow-inner`} />
+            {/* Small MoodBloom indicator with mini glow */}
+            <div className="relative inline-flex items-center justify-center">
+              <div
+                className="absolute w-20 h-20 rounded-full blur-[25px] transition-all duration-700"
+                style={{ backgroundColor: moodColors.glow }}
+              />
+              <div className="relative z-10">
+                <MoodBloom mood={currentMoodKey} size={48} />
+              </div>
             </div>
-            <h3 className="text-lg font-black text-slate-800 leading-none mb-4">
+            <h3 className="text-lg font-black text-slate-800 leading-none mb-4 mt-3">
               {getPleasantnessLabel(pleasantness)}
             </h3>
             

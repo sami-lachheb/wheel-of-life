@@ -6,14 +6,18 @@
 - **Styling**: Tailwind CSS
 - **State**: React Context + useReducer
 - **Routing**: React Router v6
-- **UI Components**: Custom (Tailwind-based) + Lucide Icons
+- **UI Components**: Custom (Tailwind-based) + Lucide Icons + Custom SVG Components
 
 ## Design Philosophy
 
 - **Mobile-Only Frame**: The entire frontend application is constrained to a mobile viewport aspect ratio (`max-w-[430px] w-full min-h-screen mx-auto bg-light-gray shadow-2xl relative flex flex-col`) centered on screen, with a dark slate background (`bg-slate-900`) filling the desktop space.
 - **Touch-First Elements**: Layouts are optimized for compact mobile ratios (e.g. tight vertical paddings, compact margins, and touch-friendly controls).
+- **No Emoji Policy**: All emoji characters in the UI have been replaced with Lucide React SVG icons or custom SVG components. Emojis are inconsistent across platforms and OS render engines. The design system relies exclusively on vector-based indicators.
+- **MoodBloom Design Language**: Mood states throughout the application are visualized using a custom geometric SVG system (`MoodBloom.js`) rather than emoji faces. Each mood tier maps to a distinct animated geometric personality (wavy concentric circles, rotating squares, overlapping ellipses, petal mandalas, pointed leaf shapes). Colors are derived from a shared `PALETTES` constant to ensure consistency across all consumers.
+
 
 ---
+
 
 ## Docker Compose Configuration
 
@@ -67,7 +71,9 @@ frontend/
 │   │   │   ├── Input.tsx
 │   │   │   ├── Textarea.tsx
 │   │   │   ├── Card.tsx
-│   │   │   └── WheelVisualization.tsx
+│   │   │   ├── WheelVisualization.tsx
+│   │   │   ├── EmotionSelectorSheet.js
+│   │   │   └── MoodBloom.js
 │   │   └── onboarding/
 │   │       ├── VisionInput.tsx
 │   │       └── AspectSelector.tsx
@@ -105,6 +111,16 @@ frontend/
 | White | `#FFFFFF` | Backgrounds, text on dark |
 | Light Gray | `#F5F5F5` | Secondary backgrounds |
 | Dark Gray | `#333333` | Primary text |
+
+### MoodBloom Color Palettes
+
+| Mood | Primary | Secondary | Usage |
+|------|---------|-----------|-------|
+| Rough | `#f43f5e` | `#ec4899` | Very Unpleasant state — rose/pink |
+| Low | `#f59e0b` | `#f97316` | Slightly Unpleasant — amber/orange |
+| Okay | `#94a3b8` | `#64748b` | Neutral state — slate |
+| Good | `#8b5cf6` | `#a78bfa` | Slightly Pleasant — violet/indigo |
+| Great | `#10b981` | `#2dd4bf` | Very Pleasant — emerald/teal |
 
 ---
 
@@ -265,17 +281,18 @@ Dashboard (/dashboard)
     * **AI Aspect Reflector**: Triggers real-time mapping suggestion cards.
 - **Interactive Emotion Selector Flow (EmotionSelectorSheet)**:
   * Triggers a full-width overlay modal shared between the Journal editor and the Dashboard.
-  * **Screen 1 (General Mood Slider)**: Uses a range slider (1 to 5) to adjust pleasantness from "Very Unpleasant" to "Very Pleasant". Visualizes mood using a central, morphing organic 3D blossom shifting color and size relative to the selected pleasantness index (no direct emojis on the main canvas).
-  * **Screen 2 (Feeling Descriptors)**: A tag cloud presenting rich emotional vocabulary (e.g. Grateful, Lonely, Stressed) mapped to the selected pleasantness tier to build emotional intelligence. Includes multiple-select toggles and a "Show More" expansion collapse.
-  * **Screen 3 (Life Impact & Context)**: A tag cloud of contributing life aspect factors (e.g. Work, Health, Hobbies) paired with an optional "Additional Context..." text area.
+  * **Background**: Solid white (`#ffffff`) base with an absolutely-positioned mood-reactive gradient overlay (`primary` at 30% → `secondary` at 18% opacity) floating above it. The overlay transitions smoothly (700ms) as pleasantness changes. The solid white base ensures the underlying Dashboard is never visible.
+  * **Screen 1 (General Mood Slider)**: Uses a range slider (1 to 5) to adjust pleasantness from "Very Unpleasant" to "Very Pleasant". Visualizes mood using the `MoodBloom` SVG component at size 180, backed by ambient glow blobs (outer: `blur-[80px]`, inner: `blur-[50px]`) that shift color with the active mood palette.
+  * **Screen 2 (Feeling Descriptors)**: A tag cloud presenting rich emotional vocabulary (e.g. Grateful, Lonely, Stressed) mapped to the selected pleasantness tier. Includes a small `MoodBloom` at size 48 as a compact indicator, also surrounded by a mini glow blob (`blur-[25px]`).
+  * **Screen 3 (Life Impact & Context)**: A tag cloud of contributing life aspect factors paired with an optional "Additional Context..." text area. Same small `MoodBloom` + mini glow indicator as Screen 2.
   * Persists the combined state and collapses cleanly on submission.
 
 ### Coach Page Layout & Flow
-- **Hayat Liquid Fluid Interface**:
-  * Emulates a live audio coaching session viewport set against a pure black background. The global navbar hides completely.
-  * **Centered Fluid Blob**: An organic, morphing liquid blob centered on the screen styled with a gradient from Blue (`#2563eb`) to Fuchsia (`#d946ef`).
-  * **Branding & Status**: Displays "Hi, I'm Hayat" with a transparent badge indicating "an AI Assistant" and a downward chevron.
-  * **Dynamic Subtitle Morphing**: When Hayat is speaking, the branding smoothly fades out and the transcription subtitles display directly in the center of the morphing shape.
+- **Riley Live Audio Interface**:
+  * Emulates a live audio coaching session viewport set against a pure black background. The global navbar hides completely. The coach is named **Riley** (previously Hayat).
+  * **Centered Fluid Blob**: An organic, morphing liquid blob centered on the screen styled with a gradient from Blue (`#2563eb`) to Fuchsia (`#d946ef`). During speaking state, renders animated bouncing audio visualizer bars inside the blob. During listening state, renders a downward chevron indicator.
+  * **Dedicated Subtitle Reading Zone**: Coach speech transcripts are displayed in a dedicated text container **below** the central blob, not inside it. This eliminates text clipping from morph animation. Text persists on screen until the next speech turn begins.
+  * **Word-by-Word Typewriter Queue**: Incoming WebSocket tokens are buffered in a word queue and dequeued one word at a time at a 320ms interval. This paces text reveal to match natural speech cadence and prevents desync between audio and subtitle display.
   * **Voice Pulse Glow**: A background indigo glow sphere scales up and down based on the state of speaking active.
 - **Call Controls Panel (Bottom Overlay)**:
   * A 3-column minimalist grid containing the following actions:
@@ -392,7 +409,34 @@ interface ThemeState {
 
 - Voice journal input
 - Doodle canvas
-- Emotion selector
-- Location tagging
+- Location tagging (backend persistence)
 - Weekly summary cards
 - Progress animations
+- Dashboard emoji replacement (Target, Lightbulb, Star, Flame for goals/advice/highlights cards) — pending
+- MoodBloom integration in Dashboard mood selector row — pending
+
+---
+
+## MoodBloom Component (`MoodBloom.js`)
+
+### Exports
+- `default MoodBloom({ mood, size })` — renders the SVG geometric shape
+- `getMoodTheme(mood)` — returns Tailwind class strings (`bg`, `border`, `ring`, `shadow`, `text`, `label`) for card theming
+- `PALETTES` — raw hex/rgba color constants per mood tier
+
+### Shape Personalities
+| Mood | Shape | Animation |
+|------|-------|-----------|
+| rough | Wavy concentric outlines (feTurbulence-style via sine wobble) | Breathe scale pulse, 4s |
+| low | Concentric rotating rounded rectangles | Clockwise spin, 20s |
+| okay | Clean concentric circles | Gentle breathe, 5s |
+| good | Overlapping ellipse petals | Counter-clockwise spin, 25s |
+| great | Pointed leaf mandala with tip dots | Clockwise spin 18s + pulse dots |
+
+### Ambient Glow Usage
+When `MoodBloom` is placed in a container, wrap it with two `div` layers for the halo effect:
+- Outer blob: `w-72 h-72 blur-[80px] animate-pulse` with `backgroundColor: moodColors.glow`
+- Inner blob: `w-48 h-48 blur-[50px]` with `backgroundColor: moodColors.primary + '25'`
+- SVG itself: `relative z-10`
+
+Small indicators (size 48) use a single mini blob: `w-20 h-20 blur-[25px]`.

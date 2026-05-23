@@ -51,17 +51,16 @@ function App() {
   const { state, dispatch } = useUser();
 
   useEffect(() => {
-    if (state.isAuthenticated && state.aspects.length === 0) {
+    if (state.isAuthenticated && !state.isSynced) {
       getUserState()
         .then((data) => {
-          if (data) {
-            if (data.aspects && data.aspects.length > 0) {
-              dispatch({ type: 'SET_ASPECTS', payload: data.aspects });
-            }
-            if (data.completedOnboarding) {
-              dispatch({ type: 'COMPLETE_ONBOARDING' });
-            }
-          }
+          dispatch({
+            type: 'SYNC_USER_STATE',
+            payload: {
+              aspects: data?.aspects || [],
+              completedOnboarding: !!data?.completedOnboarding,
+            },
+          });
         })
         .catch((err) => {
           console.error('Failed to sync auth state', err);
@@ -70,7 +69,7 @@ function App() {
           }
         });
     }
-  }, [state.isAuthenticated, state.aspects.length, dispatch]);
+  }, [state.isAuthenticated, state.isSynced, dispatch]);
 
   return (
     <Routes>

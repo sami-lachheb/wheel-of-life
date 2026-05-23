@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { getApiBaseUrl } from './apiConfig.js';
+
+const API_BASE_URL = getApiBaseUrl();
 
 function getHeaders() {
   const token = localStorage.getItem('token');
@@ -9,8 +11,13 @@ function getHeaders() {
   return headers;
 }
 
+function apiPath(path) {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${p}`;
+}
+
 export async function registerUser(username, password) {
-  const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+  const res = await fetch(apiPath('/auth/register'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -23,7 +30,7 @@ export async function registerUser(username, password) {
 }
 
 export async function loginUser(username, password) {
-  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+  const res = await fetch(apiPath('/auth/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -36,7 +43,7 @@ export async function loginUser(username, password) {
 }
 
 export async function getUserState() {
-  const res = await fetch(`${API_BASE_URL}/api/user/state`, {
+  const res = await fetch(apiPath('/user/state'), {
     headers: getHeaders(),
   });
   if (!res.ok) throw new Error('Failed to fetch user state');
@@ -44,7 +51,7 @@ export async function getUserState() {
 }
 
 export async function updateUserState(state) {
-  const res = await fetch(`${API_BASE_URL}/api/user/state`, {
+  const res = await fetch(apiPath('/user/state'), {
     method: 'PUT',
     headers: getHeaders(),
     body: JSON.stringify(state),
@@ -58,7 +65,7 @@ export async function updateUserState(state) {
 }
 
 export async function getJournals() {
-  const res = await fetch(`${API_BASE_URL}/api/journals`, {
+  const res = await fetch(apiPath('/journals'), {
     headers: getHeaders(),
   });
   if (!res.ok) throw new Error('Failed to fetch journals');
@@ -66,7 +73,7 @@ export async function getJournals() {
 }
 
 export async function createJournal(entry) {
-  const res = await fetch(`${API_BASE_URL}/api/journals`, {
+  const res = await fetch(apiPath('/journals'), {
     method: 'POST',
     headers: getHeaders(),
     body: JSON.stringify(entry),
@@ -76,7 +83,7 @@ export async function createJournal(entry) {
 }
 
 export async function getTasks() {
-  const res = await fetch(`${API_BASE_URL}/api/tasks`, {
+  const res = await fetch(apiPath('/tasks'), {
     headers: getHeaders(),
   });
   if (!res.ok) throw new Error('Failed to fetch tasks');
@@ -84,7 +91,7 @@ export async function getTasks() {
 }
 
 export async function createTask(task) {
-  const res = await fetch(`${API_BASE_URL}/api/tasks`, {
+  const res = await fetch(apiPath('/tasks'), {
     method: 'POST',
     headers: getHeaders(),
     body: JSON.stringify(task),
@@ -94,7 +101,7 @@ export async function createTask(task) {
 }
 
 export async function toggleTaskCompletion(taskId) {
-  const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+  const res = await fetch(apiPath(`/tasks/${taskId}`), {
     method: 'PATCH',
     headers: getHeaders(),
   });
@@ -103,7 +110,7 @@ export async function toggleTaskCompletion(taskId) {
 }
 
 export async function postCoachChat(message) {
-  const res = await fetch(`${API_BASE_URL}/api/coach/chat`, {
+  const res = await fetch(apiPath('/coach/chat'), {
     method: 'POST',
     headers: getHeaders(),
     body: JSON.stringify({ message }),

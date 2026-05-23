@@ -46,18 +46,18 @@ export default function Login() {
       // Fetch user's saved DB state
       try {
         const dbState = await getUserState();
-        if (dbState) {
-          if (dbState.aspects && dbState.aspects.length > 0) {
-            dispatch({ type: 'SET_ASPECTS', payload: dbState.aspects });
-          }
-          if (dbState.completedOnboarding) {
-            dispatch({ type: 'COMPLETE_ONBOARDING' });
-            navigate('/dashboard');
-            return;
-          }
+        dispatch({
+          type: 'SYNC_USER_STATE',
+          payload: {
+            aspects: dbState?.aspects || [],
+            completedOnboarding: !!dbState?.completedOnboarding,
+          },
+        });
+        if (dbState && dbState.completedOnboarding) {
+          navigate('/dashboard');
+        } else {
+          navigate('/onboarding/aspects');
         }
-        // If state doesn't exist or not completed, go to onboarding aspects
-        navigate('/onboarding/aspects');
       } catch (stateErr) {
         console.error('Failed to retrieve user state after login:', stateErr);
         navigate('/onboarding/aspects');

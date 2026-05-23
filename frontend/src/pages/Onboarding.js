@@ -211,7 +211,13 @@ export default function Onboarding() {
         completedOnboarding: true,
         aspects: state.aspects
       });
-      dispatch({ type: 'COMPLETE_ONBOARDING' });
+      dispatch({
+        type: 'SYNC_USER_STATE',
+        payload: {
+          aspects: state.aspects,
+          completedOnboarding: true
+        }
+      });
       navigate('/dashboard');
     } catch (err) {
       console.error(err);
@@ -253,7 +259,13 @@ export default function Onboarding() {
         aspects: state.aspects
       });
       
-      dispatch({ type: 'COMPLETE_ONBOARDING' });
+      dispatch({
+        type: 'SYNC_USER_STATE',
+        payload: {
+          aspects: state.aspects,
+          completedOnboarding: true
+        }
+      });
       navigate('/dashboard');
     } catch (err) {
       setAuthError(err.message || 'Authentication failed');

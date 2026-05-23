@@ -19,6 +19,11 @@ def init_db():
         coach_history TEXT DEFAULT '[]'
     );
     """)
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN coach_transcripts TEXT DEFAULT '[]';")
+    except sqlite3.OperationalError:
+        # Column already exists
+        pass
     conn.commit()
     conn.close()
 
@@ -54,7 +59,7 @@ def update_user_field(username, field, json_value):
     if not isinstance(json_value, str):
         json_value = json.dumps(json_value)
     
-    allowed_fields = {"state", "journals", "tasks", "coach_history"}
+    allowed_fields = {"state", "journals", "tasks", "coach_history", "coach_transcripts"}
     if field not in allowed_fields:
         raise ValueError(f"Unauthorized field write: {field}")
         
@@ -65,3 +70,23 @@ def update_user_field(username, field, json_value):
     )
     conn.commit()
     conn.close()
+
+def append_coach_transcript(username: str, role: str, text: str):
+    from datetime import datetime
+    conn = get_db_connection()
+    try:
+        user = conn.execute("SELECT coach_transcripts FROM users WHERE id = ?", (username,)).fetchone()
+        if user:
+            transcripts = json.loads(user["coach_transcripts"] or "[]")
+            transcripts.append({
+                "role": role,
+                "text": text,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+            conn.execute(
+                "UPDATE users SET coach_transcripts = ? WHERE id = ?",
+                (json.dumps(transcripts), username)
+            )
+            conn.commit()
+    finally:
+        conn.close()

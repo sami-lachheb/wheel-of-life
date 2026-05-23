@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -7,7 +7,15 @@ import uuid
 from datetime import datetime
 
 from database import init_db, get_user, create_user, update_user_field
-from auth import hash_password, verify_password, create_access_token, get_current_user
+from auth import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    get_current_user,
+    decode_token_username,
+)
+from coach_live import run_coach_live_proxy
+from score_analyzer import analyze_coach_transcripts_background
 
 app = FastAPI(title="Wheel of Life API")
 
@@ -82,10 +90,11 @@ def login(req: AuthRequest):
     return {"access_token": token, "token_type": "bearer"}
 
 @app.get("/api/user/state")
-def get_state(username: str = Depends(get_current_user)):
+def get_state(background_tasks: BackgroundTasks, username: str = Depends(get_current_user)):
     user = get_user(username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    background_tasks.add_task(analyze_coach_transcripts_background, username)
     return json.loads(user["state"] or "{}")
 
 @app.put("/api/user/state")
@@ -208,3 +217,40 @@ def coach_chat(req: dict, username: str = Depends(get_current_user)):
     update_user_field(username, "coach_history", history)
     
     return {"reply": bot_reply, "history": history}
+
+
+@app.websocket("/api/coach/live")
+async def coach_live_websocket(
+    websocket: WebSocket,
+    token: Optional[str] = Query(None, description="JWT access token"),
+):
+    if not token:
+        await websocket.close(code=1008, reason="Missing token")
+        return
+
+    try:
+        username = decode_token_username(token)
+    except HTTPException:
+        await websocket.close(code=1008, reason="Unauthorized")
+        return
+
+    user = get_user(username)
+    if not user:
+        await websocket.close(code=1008, reason="User not found")
+        return
+
+    user_state = json.loads(user["state"] or "{}")
+    await websocket.accept()
+
+    try:
+        await run_coach_live_proxy(websocket, username, user_state)
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        try:
+            await websocket.send_text(
+                json.dumps({"type": "error", "message": str(exc)})
+            )
+        except Exception:
+            pass
+        await websocket.close(code=1011)

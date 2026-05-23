@@ -11,7 +11,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8000
+      # Leave VITE_API_URL unset so the browser uses the Vite /api proxy (not backend:8000).
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -27,6 +27,8 @@ services:
     container_name: wheel-of-life-backend
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     volumes:
       - ./backend:/app
       - ./backend/data:/app/data

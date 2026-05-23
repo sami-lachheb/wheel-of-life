@@ -19,7 +19,8 @@ const UserContext = createContext({
     completedOnboarding: initialCompletedOnboarding,
     token: initialToken,
     username: initialUsername,
-    isAuthenticated: !!initialToken
+    isAuthenticated: !!initialToken,
+    isSynced: false
   },
   dispatch: () => null,
 });
@@ -29,11 +30,17 @@ function userReducer(state, action) {
     case 'LOGIN':
       localStorage.setItem('token', action.payload.token);
       localStorage.setItem('username', action.payload.username);
+      localStorage.removeItem('completed_onboarding');
+      localStorage.removeItem('temp_onboarding_aspects');
+      localStorage.removeItem('temp_onboarding_rate_index');
       return {
         ...state,
         token: action.payload.token,
         username: action.payload.username,
         isAuthenticated: true,
+        completedOnboarding: false,
+        aspects: [],
+        isSynced: false
       };
     case 'LOGOUT':
       localStorage.removeItem('token');
@@ -47,7 +54,8 @@ function userReducer(state, action) {
         username: null,
         isAuthenticated: false,
         completedOnboarding: false,
-        aspects: []
+        aspects: [],
+        isSynced: false
       };
     case 'SET_ASPECTS':
       localStorage.setItem('temp_onboarding_aspects', JSON.stringify(action.payload));
@@ -68,6 +76,18 @@ function userReducer(state, action) {
       localStorage.removeItem('temp_onboarding_aspects');
       localStorage.removeItem('temp_onboarding_rate_index');
       return { ...state, completedOnboarding: true };
+    case 'SYNC_USER_STATE':
+      if (action.payload.completedOnboarding) {
+        localStorage.setItem('completed_onboarding', 'true');
+      } else {
+        localStorage.removeItem('completed_onboarding');
+      }
+      return {
+        ...state,
+        aspects: action.payload.aspects || [],
+        completedOnboarding: !!action.payload.completedOnboarding,
+        isSynced: true
+      };
     default:
       return state;
   }
@@ -84,7 +104,8 @@ export function UserProvider({ children }) {
     completedOnboarding: initialCompletedOnboarding,
     token: initialToken,
     username: initialUsername,
-    isAuthenticated: !!initialToken
+    isAuthenticated: !!initialToken,
+    isSynced: false
   });
   
   return (

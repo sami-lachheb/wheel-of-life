@@ -1,157 +1,134 @@
-# AI Coach Centered Fluid Blob (Hayat) Implementation Guide
+# AI Coach Centered Fluid Blob (Riley) Implementation Guide
 
-This document outlines the frontend implementation plan for the **MindHack AI Coach** page (`/coach`), focusing on a centered, morphing fluid gradient blob design inspired by Hayat.
+This document outlines the **MindHack AI Coach** page (`/coach`): the Riley (like railway) fluid-blob UI, stateful conversation flow, memory integration, and automatic background assessment extraction.
+
+**Latest commit:** `950adef` — `feat(coach): implement Hayat AI coach page with fluid morphing blob UI`  
+*Note: The coach has been renamed from Hayat to Riley.*
 
 ---
 
-## 1. Core Architecture
+## 0. Implementation Status
 
-The virtual coach session simulates an interactive voice check-in call set against a pitch-black backdrop. The visual center is a fluid, morphing gradient blob that dynamically alters its deformation speed and scale based on active vocalization.
+| Area | Status | Spec / Target |
+|------|--------|---------------|
+| Morphing blob + `isSpeaking` | Shipped | Uses `animate-morph`, faster when speaking |
+| Subtitles in blob | Shipped | Displays real-time assistant transcription |
+| Controls & Drawer | Shipped | Mute / Hold / Chat buttons + extracted tasks drawer |
+| Coach Naming | Pending | Rename coach from "Hayat" to "Riley" in backend/frontend |
+| Voice & Session Stack | Shipped | Gemini Live bidirectional audio via WebSocket proxy (`/api/coach/live`) |
+| Real-time Transcription Logging | Pending | Write user and assistant transcripts to SQLite `coach_transcripts` table in real-time |
+| Context Injection | Pending | Inject current Wheel scores, vision, and accumulated memory into system instruction |
+| Async State / Score Analyzer | Pending | On dashboard load, trigger background extraction to update scores and memory |
+| Memory Storage | Pending | Store extracted memory (patterns, triggers, goals) nested inside the user `state` JSON |
+
+---
+
+## 1. Core Architecture (POC)
 
 ```mermaid
 graph TD
-    UserSpeech[User Voice Input] -->|webkitSpeechRecognition| LLM[LangGraph Coach Agent]
-    LLM -->|Stream Response| Frontend[React State & Subtitles]
-    Frontend -->|isSpeaking=true| UI[Morphing Gradient Blob & Subtitles]
-    Frontend -->|Base64 Decoding| TTS[Browser Audio / Web Audio API]
+    Mic[Browser Mic] -->|PCM 16kHz| Backend[FastAPI Live Proxy]
+    Backend -->|WebSocket| Live[Gemini Live API]
+    Live -->|PCM 24kHz + transcripts| Backend
+    Backend -->|WS| CoachJS[Coach.js]
+    CoachJS -->|Web Audio API| Blob[Morphing Blob + Subtitles]
+    
+    DB[(SQLite)] -->|Read aspects, vision, memory| PromptConfig[Riley System Prompt]
+    PromptConfig -->|Inject context| Live
+    
+    Backend -->|Write finished turns in real-time| DBLog[(coach_transcripts table)]
+    
+    Dashboard[Dashboard.js] -->|GET /api/user/state| APIState[/api/user/state]
+    APIState -->|Trigger background task| Analyzer[Background Score Analyzer]
+    DBLog -->|Fetch raw transcripts| Analyzer
+    Analyzer -->|Call Gemini Text API| Extractor[Gemini Flash]
+    Extractor -->|Return scores + memory| Analyzer
+    Analyzer -->|Write state.aspects & state.memory| DB
 ```
 
 ---
 
-## 2. Morphing Animation CSS (`index.css`)
+## 2. Database Schema Extension (SQLite)
 
-The organic, irregular morphing effect is achieved purely through CSS-driven `border-radius` transitions at different keyframe intervals:
+The `users` table is extended to log raw chat transcripts in real-time. On application startup, the database initialization must run:
 
-```css
-@keyframes morph {
-  0% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
-  25% { border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%; }
-  50% { border-radius: 50% 50% 28% 72% / 35% 65% 35% 65%; }
-  75% { border-radius: 35% 65% 60% 40% / 50% 50% 50% 50%; }
-  100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
-}
-
-.animate-morph {
-  animation: morph 12s ease-in-out infinite;
-}
-
-.animate-morph-speaking {
-  animation: morph 6s ease-in-out infinite;
-}
+```sql
+ALTER TABLE users ADD COLUMN coach_transcripts TEXT DEFAULT '[]';
 ```
 
----
-
-## 3. Page Layout & Control Panel (`Coach.js`)
-
-The page layout centers the morphing blob with Hayat's name and transparent badge badge details:
-
-```jsx
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mic, MicOff, ListTodo, PhoneOff, Send, Keyboard, ChevronDown } from 'lucide-react';
-
-export default function Coach() {
-  const navigate = useNavigate();
-  const [isMuted, setIsMuted] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [currentSubtitles, setCurrentSubtitles] = useState('');
-  const [showTextInput, setShowTextInput] = useState(false);
-
-  return (
-    <div className="relative h-screen w-full bg-black flex flex-col justify-between p-6 max-w-[430px] mx-auto overflow-hidden">
-      
-      {/* 1. Header Bar */}
-      <div className="flex justify-between items-center w-full">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-white/50 bg-white/5 px-3 py-1.5 rounded-xl">
-          <ArrowLeft className="w-3.5 h-3.5" /> Previous
-        </button>
-      </div>
-
-      {/* 2. Centered Fluid Blob Container */}
-      <div className="flex-1 flex flex-col items-center justify-center relative w-full">
-        <div className={`absolute w-[280px] h-[280px] rounded-full bg-indigo-500/20 blur-[80px] transition-all duration-1000 ${
-          isSpeaking ? 'scale-125 opacity-100' : 'scale-100 opacity-60'
-        }`} />
-
-        <div className={`w-[290px] h-[290px] bg-gradient-to-tr from-blue-600 via-indigo-500 to-fuchsia-500 shadow-[0_0_60px_rgba(99,102,241,0.4)] flex flex-col items-center justify-center p-8 text-center transition-all duration-700 transform ${
-          isSpeaking ? 'scale-105 animate-morph-speaking' : 'scale-100 animate-morph'
-        }`}>
-          {currentSubtitles ? (
-            <p className="text-sm font-bold leading-relaxed tracking-tight text-white/95 max-w-[210px] animate-fade-in">
-              {currentSubtitles}
-            </p>
-          ) : (
-            <div className="flex flex-col items-center">
-              <h2 className="text-2xl font-medium text-white/90">
-                Hi, I'm <span className="font-extrabold text-white">Hayat</span>
-              </h2>
-              <div className="mt-3 flex items-center gap-1 bg-white/10 border border-white/20 px-2.5 py-1 rounded-full">
-                <span className="text-[9px] font-bold text-white/80">an AI Assistant</span>
-                <ChevronDown className="w-3 h-3 text-white/60" />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 3. Control Panel */}
-      <div className="grid grid-cols-3 gap-4 bg-white/5 border border-white/10 p-4 rounded-3xl">
-        <button onClick={toggleMute} className="w-full py-3.5 bg-white/5 rounded-2xl">
-          {isMuted ? <X className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-        </button>
-        <button onClick={toggleHold} className="w-full py-3.5 bg-white/5 rounded-2xl">
-          {isHeld ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
-        </button>
-        <button onClick={() => setShowTextInput(!showTextInput)} className="w-full py-3.5 bg-white/5 rounded-2xl">
-          <Keyboard className="w-5 h-5" />
-        </button>
-      </div>
-
-    </div>
-  );
-}
+### Transcript Log Format
+The `coach_transcripts` column stores a JSON array of message objects:
+```json
+[
+  {
+    "role": "user" | "assistant",
+    "text": "I feel like I'm working 60 hours a week and have no energy for the gym.",
+    "timestamp": "2026-05-23T05:00:00Z"
+  }
+]
 ```
 
----
-
-## 4. Google AI Studio (Gemini API) Text-to-Speech Integration
-
-To output high-fidelity coach dialogue, the backend fetches speech audio dynamically from Gemini.
-
-### Response Payload Structure
+### Memory Schema (Nested in `users.state`)
+Instead of a separate table, memory and analytical progression are stored nested inside the user's `state` JSON column:
 ```json
 {
-  "text": "Hello Sami, let's look at your progress today.",
-  "audio": "UklGRu...[Base64 encoded speech bytes]"
-}
-```
-
-### Audio Context Decoding Flow
-On receiving response, the base64 string is parsed to an `AudioBuffer` and played via the browser's Web Audio API context. `isSpeaking` state is set during playback:
-
-```javascript
-async function playAudioBytes(audioBase64, text) {
-  const binary = window.atob(audioBase64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
+  "completedOnboarding": true,
+  "vision": "To design simple, meaningful products and find daily peace.",
+  "aspects": [
+    { "name": "Mental clarity", "score": 4 },
+    { "name": "Energy & health", "score": 3 },
+    { "name": "Relationships", "score": 8 }
+  ],
+  "memory": {
+    "user_patterns": [
+      "feels lost professionally",
+      "avoids difficult conversations",
+      "wants structure but fears pressure"
+    ],
+    "emotional_triggers": [
+      "work pressure",
+      "gym guilt"
+    ],
+    "goals": [
+      "exercise twice a week",
+      "protect weekend boundaries"
+    ],
+    "last_analyzed_timestamp": "2026-05-23T05:00:00Z"
   }
-  
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const buffer = await ctx.decodeAudioData(bytes.buffer);
-  
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(ctx.destination);
-  
-  setCurrentSubtitles(text);
-  setIsSpeaking(true);
-  
-  source.onended = () => {
-    setIsSpeaking(false);
-  };
-  
-  source.start(0);
 }
 ```
+
+---
+
+## 3. Gemini Live System Prompt & User Progress
+
+To ensure Riley knows the current progress of the user with their Wheel of Life, the backend fetches the user's `state` (including current aspects, vision, and accumulated memory) and dynamically compiles it into Riley's system prompt during WebSocket handshake.
+
+The prompt templates and context compilation logic are defined in [prompts.py](file:///home/sami/Desktop/MindHack/backend/prompts.py).
+
+---
+
+## 4. Background Score & Memory Analyzer
+
+Every time the user visits the Dashboard, a background process runs to analyze the transcripts, update the scores, and extract memory insights:
+
+1. **Trigger:** `GET /api/user/state` spawns a FastAPI `BackgroundTask`.
+2. **Delta Check:** If there are no new entries in `coach_transcripts` since `last_analyzed_timestamp`, the background task exits immediately.
+3. **Execution:** If new transcripts exist:
+   - Fetch the new transcripts.
+   - Run a prompt against the Gemini Text API (`gemini-2.5-flash`) containing the existing `state` and the transcript delta.
+   - Instruct the model to return a structured JSON update containing:
+     - Adjusted scores for the 8 categories (only if the user explicitly rated or discussed improvements/declines).
+     - Newly discovered patterns, triggers, or goals to append to `state.memory`.
+     - An updated `last_analyzed_timestamp`.
+4. **Persist:** Write the updated JSON back to the `state` column in SQLite.
+
+---
+
+## 5. Development Tasks
+
+1. **Rename Coach:** Refactor references of `Hayat` to `Riley` in system prompts, files, and UI displays.
+2. **DB Migration:** Update `database.py` to add `coach_transcripts` to the user schema.
+3. **Transcript Recording:** Modify `backend/coach_live.py` inside `_relay_gemini_turns` to append finished user/assistant turns directly into SQLite.
+4. **System Instruction Builder:** Update `build_live_config` to inject current aspects, vision, and `state.memory` into the system prompt.
+5. **Background Analyzer:** Implement the async updater in a new module and attach it to the `GET /api/user/state` endpoint in `backend/main.py`.

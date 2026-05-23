@@ -1,1 +1,1 @@
-when forwarding port 3000 i couldn't use my sign in feature, i think we need to configure some type of routing
+let's put the our logo instead of the home page logo

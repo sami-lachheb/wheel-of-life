@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Mic, Send, Keyboard, X, ChevronDown, Pause, Play, ListTodo } from 'lucide-react';
 import { useUser } from '../contexts/UserContext.js';
 import { useCoachLive } from '../hooks/useCoachLive.js';
@@ -7,6 +7,7 @@ import { getTasks } from '../utils/api.js';
 
 export default function Coach() {
   const navigate = useNavigate();
+  const locationState = useLocation();
   const { state } = useUser();
   const displayName = state.username || 'there';
 
@@ -68,6 +69,8 @@ export default function Coach() {
 
   const handleTurnComplete = useCallback(() => {
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+    if (showTextInput || isSpeaking) return;
+    
     silenceTimeoutRef.current = setTimeout(() => {
       setIsHeld(true);
     }, 10000);
@@ -77,7 +80,16 @@ export default function Coach() {
         return '';
       });
     }, 2500);
-  }, [displayName]);
+  }, [displayName, showTextInput, isSpeaking]);
+
+  useEffect(() => {
+    if (showTextInput || isSpeaking) {
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
+      }
+    }
+  }, [showTextInput, isSpeaking]);
 
   const { status, sendText, stopPlayback, unlockAudio } = useCoachLive({
     enabled: Boolean(state.isAuthenticated),
@@ -91,6 +103,15 @@ export default function Coach() {
     onNeedsAudioUnlock: handleNeedsAudioUnlock,
     onTurnComplete: handleTurnComplete,
   });
+
+  useEffect(() => {
+    if (status === 'connected' && locationState.state?.initialMessage) {
+      const initMsg = locationState.state.initialMessage;
+      window.history.replaceState({}, document.title);
+      sendText(initMsg);
+      setCurrentSubtitles(`${displayName}: "${initMsg}"`);
+    }
+  }, [status, locationState, sendText, displayName]);
 
   const handleSendMessage = (e) => {
     if (e) e.preventDefault();
@@ -143,18 +164,20 @@ export default function Coach() {
           : 'bg-white/30';
 
   return (
-    <div className="relative h-screen w-full bg-black flex flex-col justify-between p-6 max-w-[430px] mx-auto overflow-hidden text-white font-sans select-none">
+    <div className="relative h-screen w-full bg-black flex flex-col justify-between p-6 pb-28 max-w-[430px] mx-auto overflow-hidden text-white font-sans select-none">
 
       <div className="z-10 flex items-center justify-between w-full">
-        <button
-          onClick={() => {
-            stopPlayback();
-            navigate(-1);
-          }}
-          className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs font-bold uppercase tracking-wider bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Previous
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              stopPlayback();
+              navigate(-1);
+            }}
+            className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs font-bold uppercase tracking-wider bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Previous
+          </button>
+        </div>
 
         <div className="flex items-center gap-3">
           <button

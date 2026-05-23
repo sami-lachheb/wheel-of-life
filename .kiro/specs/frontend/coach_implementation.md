@@ -131,4 +131,4 @@ Every time the user visits the Dashboard, a background process runs to analyze t
 2. **DB Migration:** Update `database.py` to add `coach_transcripts` to the user schema.
 3. **Transcript Recording:** Modify `backend/coach_live.py` inside `_relay_gemini_turns` to append finished user/assistant turns directly into SQLite.
 4. **System Instruction Builder:** Update `build_live_config` to inject current aspects, vision, and `state.memory` into the system prompt.
-5. **Background Analyzer:** Implement the async updater in a new module and attach it to the `GET /api/user/state` endpoint in `backend/main.py`.
+5. **Background Analyzer:** Implement the async updater in a new module and attach it to the `GET /api/user/state` endpoint in `backend/main.py`. 

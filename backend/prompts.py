@@ -25,7 +25,7 @@ If they have an active wheel:
 Speak in short, conversational paragraphs. Ask exactly ONE thoughtful, deep question at a time."""
 
 
-ANALYZER_SYSTEM_PROMPT = """You are an AI life coach state analyzer. Your task is to analyze the conversation transcripts between the user and the AI coach (Riley), then update the user's Wheel of Life scores and extract persistent memory insights (patterns, emotional triggers, goals).
+ANALYZER_SYSTEM_PROMPT = """You are an AI life coach state analyzer. Your task is to analyze the conversation transcripts between the user and the AI coach (Riley), then evaluate directional progress or regression in the user's life aspects and extract/refine persistent memory insights (patterns, emotional triggers, goals).
 
 Here is the current user state:
 {current_state}
@@ -33,33 +33,41 @@ Here is the current user state:
 Here is the new segment of the conversation transcript:
 {transcript_delta}
 
+The user's configured life aspects are:
+{aspects_list}
+
 Analyze the transcript for any changes or new realizations.
-Update the satisfaction scores (1-10) for the 8 aspects only if the user explicitly discusses improvements, declines, or assigns a score in that category. The 8 aspects are:
-- Mental clarity
-- Energy & health
-- Relationships
-- Career & studies
-- Discipline & habits
-- Purpose & meaning
-- Financial peace
-- Fun & enjoyment
+Update the life aspects using delta shifts instead of absolute scores.
+Permitted delta values are strictly: +2, +1, 0, -1, -2.
+
+Strict Evaluation Guidelines:
+1. Behavioral Evidence: Only assign non-zero deltas (+1, +2, -1, -2) if the user shares concrete behavior, actions, or physical boundaries. Do not rate based on stated intentions or generalized optimism (e.g. "I plan to start studying next week" -> delta: 0).
+2. Anti-Repetition: Compare discussion with the existing "user_patterns" in the current state. If the user describes a situation or pattern that is already captured without showing new developments, progress, or deterioration, output delta: 0.
+3. Mood vs. Progress: Separate transient, session-specific emotional states (e.g., excitement, temporary frustration) from actual overall stability and progress in a life category.
+4. No-Op Default: For any aspects not discussed or where no concrete behavioral shift is shown, output delta: 0.
 
 Also extract or refine:
 - user_patterns: Long-term behavioral tendencies, mindsets, or recurring obstacles.
 - emotional_triggers: Situations, concepts, or thoughts that cause stress, anxiety, or excitement.
 - goals: Concrete actionable steps the user has committed to or expressed interest in.
+- focus: For EACH aspect, provide a short, actionable, single-sentence focus/recommendation based on current progress, whether the aspect was discussed in this session or not. If not discussed, provide a general focus task aligned with their target vision.
+- coach_advice: A list of 1-3 short, high-impact bullet points of tactical advice based on current patterns. Overwrite or refine advice as user behavior shifts.
 
 You MUST respond ONLY with a valid JSON object matching this structure (do not include markdown wrapping or extra text):
 {{
-  "aspects": [
-    {{ "name": "Mental clarity", "score": 4 }},
+  "aspect_updates": [
+    {{ "name": "Health & Fitness", "delta": -1, "reasoning": "...", "focus": "..." }},
     ...
   ],
   "memory": {{
     "user_patterns": [...],
     "emotional_triggers": [...],
     "goals": [...]
-  }}
+  }},
+  "coach_advice": [
+    "...",
+    "..."
+  ]
 }}
 """
 
@@ -94,7 +102,10 @@ def get_coach_system_prompt(username: str, user_state: dict) -> str:
 def get_analyzer_prompt(current_state: dict, transcript_delta: list) -> str:
     """Compiles the analyzer prompt for background score & memory extraction."""
     import json
+    aspects = current_state.get("aspects") or []
+    aspects_list = "\n".join(f"- {a.get('name')}" for a in aspects if "name" in a)
     return ANALYZER_SYSTEM_PROMPT.format(
         current_state=json.dumps(current_state, indent=2),
-        transcript_delta=json.dumps(transcript_delta, indent=2)
+        transcript_delta=json.dumps(transcript_delta, indent=2),
+        aspects_list=aspects_list
     )

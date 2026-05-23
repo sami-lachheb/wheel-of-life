@@ -86,6 +86,8 @@ function userReducer(state, action) {
         ...state,
         aspects: action.payload.aspects || [],
         completedOnboarding: !!action.payload.completedOnboarding,
+        memory: action.payload.memory || {},
+        mood: action.payload.mood || null,
         isSynced: true
       };
     default:
@@ -102,6 +104,8 @@ export function UserProvider({ children }) {
       lastUpdated: new Date().toISOString(),
     },
     completedOnboarding: initialCompletedOnboarding,
+    memory: {},
+    mood: null,
     token: initialToken,
     username: initialUsername,
     isAuthenticated: !!initialToken,

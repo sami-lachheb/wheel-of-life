@@ -118,3 +118,31 @@ export async function postCoachChat(message) {
   if (!res.ok) throw new Error('Failed to chat with coach');
   return res.json();
 }
+
+export async function getJournalPrompt() {
+  const res = await fetch(apiPath('/journal/prompt'), {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch journal prompt');
+  return res.json();
+}
+
+export async function getJournalSuggestion(text) {
+  const res = await fetch(apiPath('/journal/suggest'), {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error('Failed to fetch suggestion');
+  return res.json();
+}
+
+export async function getJournalReflection(journalId) {
+  const res = await fetch(apiPath('/journal/reflect'), {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ journal_id: journalId }),
+  });
+  if (!res.ok) throw new Error('Failed to fetch reflection');
+  return res.json();
+}

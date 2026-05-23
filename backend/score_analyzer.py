@@ -80,14 +80,30 @@ def analyze_coach_transcripts_background(username: str):
         result = json.loads(response.text.strip())
         logger.debug(f"Gemini Analyzer Result: {result}")
 
-        # 1. Update satisfaction scores for matching aspects
-        updated_aspects = {a["name"].lower(): a["score"] for a in result.get("aspects", []) if "name" in a and "score" in a}
-        
+        # 1. Apply delta updates and focus recommendations to satisfaction scores for matching aspects
+        aspect_updates = result.get("aspect_updates", [])
         aspects = state.get("aspects") or []
-        for aspect in aspects:
-            name_lower = aspect.get("name", "").lower()
-            if name_lower in updated_aspects:
-                aspect["score"] = updated_aspects[name_lower]
+        
+        for update in aspect_updates:
+            name = update.get("name")
+            delta = update.get("delta")
+            focus = update.get("focus")
+            if not name:
+                continue
+            
+            # Find matching aspect in state (case-insensitive)
+            for aspect in aspects:
+                if aspect.get("name", "").lower() == name.lower():
+                    # Calculate new score if delta is provided, clamp between 1 and 10
+                    if delta is not None:
+                        current_score = aspect.get("score", 5)
+                        aspect["score"] = max(1, min(10, current_score + delta))
+                        logger.info(f"Updated aspect {aspect['name']} score: {current_score} -> {aspect['score']} (delta: {delta})")
+                    # Update focus recommendation if provided
+                    if focus:
+                        aspect["focus"] = focus
+                        logger.info(f"Updated aspect {aspect['name']} focus recommendation: {focus}")
+                    break
         
         # 2. Merge memory patterns, triggers, goals (union sets to avoid duplicates)
         result_mem = result.get("memory") or {}
@@ -104,6 +120,10 @@ def analyze_coach_transcripts_background(username: str):
             memory.get("goals") or []
         ).union(result_mem.get("goals") or []))
 
+        # 3. Overwrite or update coach advice
+        if "coach_advice" in result:
+            memory["coach_advice"] = result["coach_advice"]
+
         # Update last analyzed mark
         memory["last_analyzed_timestamp"] = latest_timestamp
         
@@ -112,7 +132,7 @@ def analyze_coach_transcripts_background(username: str):
         state["aspects"] = aspects
         
         update_user_field(username, "state", state)
-        logger.info(f"Successfully updated aspects and memory for {username}")
+        logger.info(f"Successfully updated aspects, memory, and advice for {username}")
 
     except Exception as e:
         logger.exception(f"Error in transcript background analysis: {e}")

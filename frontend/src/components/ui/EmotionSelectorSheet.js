@@ -55,6 +55,17 @@ const getBlossomColorClass = (level) => {
   }
 };
 
+const findLevelForTag = (tag) => {
+  if (!tag) return 3;
+  const tagLower = tag.toLowerCase();
+  for (const [moodKey, list] of Object.entries(emotionMap)) {
+    if (list.some(item => item.toLowerCase() === tagLower)) {
+      return mapMoodToLevel(moodKey);
+    }
+  }
+  return 3;
+};
+
 export default function EmotionSelectorSheet({ isOpen, onClose, onSave, initialMood = null, initialTags = [] }) {
   const [step, setStep] = useState(1);
   const [pleasantness, setPleasantness] = useState(3);
@@ -66,10 +77,17 @@ export default function EmotionSelectorSheet({ isOpen, onClose, onSave, initialM
   // Sync state with props when opened
   useEffect(() => {
     if (isOpen) {
-      setStep(1);
-      const level = mapMoodToLevel(initialMood);
-      setPleasantness(level);
-      setSelectedTags(initialTags);
+      if (initialTags && initialTags.length > 0) {
+        setStep(2);
+        const tag = initialTags[0];
+        const level = findLevelForTag(tag);
+        setPleasantness(level);
+      } else {
+        setStep(1);
+        const level = mapMoodToLevel(initialMood);
+        setPleasantness(level);
+      }
+      setSelectedTags(initialTags || []);
       setSelectedImpacts([]);
       setContextText('');
       setShowAllTags(false);

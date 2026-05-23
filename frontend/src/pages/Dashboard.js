@@ -2,24 +2,58 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import WheelVisualization from '../components/ui/WheelVisualization.js';
 import { useWheel } from '../hooks/useWheel.js';
-import { getJournals, getTasks, toggleTaskCompletion } from '../utils/api.js';
+import { getJournals, getTasks, toggleTaskCompletion, getUserState, updateUserState } from '../utils/api.js';
 import { useUser } from '../contexts/UserContext.js';
 import { BookOpen, MessageSquare, Disc, ClipboardCheck, CheckCircle2, Circle, Trophy } from 'lucide-react';
 import EmotionSelectorSheet from '../components/ui/EmotionSelectorSheet.js';
 
 export default function Dashboard() {
   const { aspects, getAverageScore } = useWheel();
-  const { state } = useUser();
+  const { state, dispatch } = useUser();
   const [journals, setJournals] = useState([]);
   const [tasks, setTasks] = useState([]);
-  const [mood, setMood] = useState(() => localStorage.getItem('user_mood') || 'okay');
+  
+  const [mood, setMood] = useState(() => {
+    const logged = localStorage.getItem('user_mood_log');
+    if (logged) {
+      try {
+        const parsed = JSON.parse(logged);
+        const diff = (new Date() - new Date(parsed.timestamp)) / 3600000;
+        if (diff < 12.0) return parsed.mood || 'okay';
+      } catch (_) {}
+    }
+    return 'okay';
+  });
+  
   const [moodLog, setMoodLog] = useState(() => {
     const logged = localStorage.getItem('user_mood_log');
-    return logged ? JSON.parse(logged) : null;
+    if (logged) {
+      try {
+        const parsed = JSON.parse(logged);
+        const diff = (new Date() - new Date(parsed.timestamp)) / 3600000;
+        if (diff < 12.0) return parsed;
+      } catch (_) {}
+    }
+    return null;
   });
+
+  const [pleasantness, setPleasantness] = useState(() => {
+    const logged = localStorage.getItem('user_mood_log');
+    if (logged) {
+      try {
+        const parsed = JSON.parse(logged);
+        const diff = (new Date() - new Date(parsed.timestamp)) / 3600000;
+        if (diff < 12.0) {
+          const moodMap = { 'rough': 1, 'low': 2, 'okay': 3, 'good': 4, 'great': 5 };
+          return moodMap[parsed.mood] || 3;
+        }
+      } catch (_) {}
+    }
+    return 3;
+  });
+
   const [showMoodModal, setShowMoodModal] = useState(false);
   const [moodStep, setMoodStep] = useState(1);
-  const [pleasantness, setPleasantness] = useState(3);
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedImpacts, setSelectedImpacts] = useState([]);
   const [moodContext, setMoodContext] = useState('');
@@ -29,18 +63,44 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [journalData, taskData] = await Promise.all([
+        const [journalData, taskData, stateData] = await Promise.all([
           getJournals(),
-          getTasks()
+          getTasks(),
+          getUserState()
         ]);
         setJournals(journalData);
         setTasks(taskData);
+        if (stateData) {
+          dispatch({
+            type: 'SYNC_USER_STATE',
+            payload: {
+              aspects: stateData.aspects || [],
+              completedOnboarding: !!stateData.completedOnboarding,
+              memory: stateData.memory || {},
+              mood: stateData.mood || null,
+            },
+          });
+          
+          if (stateData.mood && stateData.mood.timestamp) {
+            const diff = (new Date() - new Date(stateData.mood.timestamp)) / 3600000;
+            if (diff < 12.0) {
+              setMood(stateData.mood.mood || stateData.mood.value || 'okay');
+              setMoodLog(stateData.mood);
+              const moodMap = { 'rough': 1, 'low': 2, 'okay': 3, 'good': 4, 'great': 5 };
+              setPleasantness(moodMap[stateData.mood.mood || stateData.mood.value] || 3);
+            } else {
+              setMood('okay');
+              setMoodLog(null);
+              setPleasantness(3);
+            }
+          }
+        }
       } catch (err) {
         console.error("Failed to load dashboard data:", err);
       }
     }
     loadData();
-  }, []);
+  }, [dispatch]);
 
   const getLast7Days = () => {
     const days = [];
@@ -123,6 +183,13 @@ export default function Dashboard() {
 
   const activeTasks = tasks.filter(t => !t.completed).slice(0, 3);
 
+  const getHighestAspect = () => {
+    if (!aspects || aspects.length === 0) return null;
+    return [...aspects].sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+  };
+
+  const highestAspect = getHighestAspect();
+
   return (
     <div className="relative min-h-screen bg-gradient-to-tr from-indigo-100/80 via-purple-50/90 to-rose-100/80 py-8 px-4 flex items-start justify-center overflow-hidden">
       
@@ -133,7 +200,7 @@ export default function Dashboard() {
         <div className="absolute -bottom-10 right-10 w-72 h-72 bg-rose-400/30 rounded-full blur-2xl" />
       </div>
 
-      <div className="max-w-2xl w-full mx-auto mt-4 relative z-10">
+      <div className="max-w-2xl w-full mx-auto mt-4 relative z-10 pb-24">
         
         {/* Profile Header & Mood Selector */}
         <div className="mb-8">
@@ -155,33 +222,74 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Mood Check-In Widget */}
-          <div className="flex gap-2 justify-between mt-5 bg-white/40 backdrop-blur-sm border border-gray-200/30 rounded-2xl p-2.5 ring-1 ring-white/60">
-            {moods.map((m) => {
-              const active = mood === m.value;
-              return (
-                <button
-                  key={m.value}
-                  onClick={() => {
-                    setActiveMoodTier(m.value);
-                    if (moodLog && moodLog.mood === m.value) {
-                      setSelectedTags(moodLog.tags || []);
-                    } else {
-                      setSelectedTags([]);
-                    }
-                    setShowMoodModal(true);
-                  }}
-                  className={`flex-1 flex flex-col items-center py-1.5 rounded-xl transition-all ${
-                    active 
-                      ? `${m.color} scale-105 shadow-sm font-bold border` 
-                      : 'hover:bg-white/50 text-gray-400'
-                  }`}
-                >
-                  <span className="text-lg">{m.emoji}</span>
-                  <span className="text-[9px] uppercase font-black tracking-tighter mt-0.5">{m.label}</span>
-                </button>
-              );
-            })}
+          {/* Mood Check-In Slider Panel */}
+          <div className="mt-5 bg-white/40 backdrop-blur-sm border border-gray-200/30 rounded-2xl p-4.5 ring-1 ring-white/60 flex flex-col gap-2.5">
+            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <span>Rough 😢</span>
+              <span className="opacity-60">Okay 😐</span>
+              <span>Great 😁</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              value={pleasantness}
+              onChange={(e) => setPleasantness(Number(e.target.value))}
+              onPointerUp={() => {
+                const moodMap = { 1: 'rough', 2: 'low', 3: 'okay', 4: 'good', 5: 'great' };
+                const selectedVal = moodMap[pleasantness] || 'okay';
+                setActiveMoodTier(selectedVal);
+                if (moodLog && moodLog.mood === selectedVal) {
+                  setSelectedTags(moodLog.tags || []);
+                } else {
+                  setSelectedTags([]);
+                }
+                setShowMoodModal(true);
+              }}
+              onTouchEnd={() => {
+                const moodMap = { 1: 'rough', 2: 'low', 3: 'okay', 4: 'good', 5: 'great' };
+                const selectedVal = moodMap[pleasantness] || 'okay';
+                setActiveMoodTier(selectedVal);
+                if (moodLog && moodLog.mood === selectedVal) {
+                  setSelectedTags(moodLog.tags || []);
+                } else {
+                  setSelectedTags([]);
+                }
+                setShowMoodModal(true);
+              }}
+              className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gradient-to-r from-rose-400 via-amber-350 to-emerald-450 focus:outline-none"
+              style={{
+                WebkitAppearance: 'none',
+              }}
+            />
+            {/* Custom Range Input Track Styling */}
+            <style>{`
+              input[type='range']::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #1e293b;
+                border: 2px solid white;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                cursor: pointer;
+                transition: transform 0.1s ease;
+              }
+              input[type='range']::-webkit-slider-thumb:hover {
+                transform: scale(1.1);
+              }
+              input[type='range']::-moz-range-thumb {
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #1e293b;
+                border: 2px solid white;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                cursor: pointer;
+              }
+            `}</style>
           </div>
 
           {/* Logged Tags list below check-in row if any exist */}
@@ -195,43 +303,80 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Dynamic Focus Card */}
-        {lowestAspect && (
-          <div className="bg-gradient-to-br from-indigo-100/90 to-violet-100/90 border border-indigo-200/50 rounded-3xl p-6 relative overflow-hidden shadow-sm mb-6 flex flex-col justify-between ring-1 ring-white/60">
-            <div className="max-w-[75%] z-10">
-              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none bg-indigo-50 border border-indigo-200/40 px-2.5 py-1 rounded-full">
-                Focus Area
+        {/* Top Aspect Card (Encouraging Highlight) */}
+        {highestAspect && (
+          <div className="bg-gradient-to-br from-amber-50 to-orange-100/90 border border-amber-200/50 rounded-3xl p-5 relative overflow-hidden shadow-sm mb-6 flex flex-col justify-between ring-1 ring-white/60">
+            <div className="max-w-[80%] z-10">
+              <span className="text-[9px] font-black text-amber-700 uppercase tracking-widest leading-none bg-amber-100/60 border border-amber-200/40 px-2.5 py-1 rounded-full flex items-center gap-1 w-fit">
+                ⭐ Top Area
               </span>
-              <h2 className="text-xl font-black text-slate-800 mt-3 leading-tight flex items-baseline gap-2">
-                {lowestAspect.name}
-                <span className="text-xs font-black text-indigo-600 bg-white px-1.5 py-0.5 rounded-md border border-indigo-100 shadow-sm">
-                  {lowestAspect.score}/10
+              <h2 className="text-lg font-black text-slate-800 mt-3 leading-tight flex items-baseline gap-2">
+                {highestAspect.name}
+                <span className="text-xs font-black text-amber-700 bg-white px-1.5 py-0.5 rounded-md border border-amber-100 shadow-sm">
+                  {highestAspect.score}/10
                 </span>
               </h2>
-              {lowestAspect.vision && (
-                <p className="text-[11px] italic text-slate-500 mt-1 font-medium line-clamp-2">
-                  "{lowestAspect.vision}"
-                </p>
-              )}
-              <p className="text-xs text-slate-700 mt-3 font-semibold leading-relaxed">
-                {getAspectNudge(lowestAspect.name)}
+              <p className="text-xs text-slate-700 mt-2 font-semibold leading-relaxed">
+                You are excelling in this aspect. Keep maintaining this momentum and leverage this strength to balance other areas!
               </p>
             </div>
-            
-            <div className="mt-5 flex items-center justify-between z-10">
-              <Link
-                to="/journal"
-                className="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-slate-800 transition-all shadow-sm flex items-center gap-1.5"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-gold" />
-                Reflect on this
-              </Link>
+            {/* Decorative Icon */}
+            <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-20 h-20 bg-gradient-to-tr from-amber-300/30 to-orange-300/30 rounded-full blur-md pointer-events-none" />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/70 rounded-full shadow-inner pointer-events-none flex items-center justify-center">
+              <Trophy className="w-6 h-6 text-amber-500" />
             </div>
+          </div>
+        )}
 
-            {/* Decorative abstract elements simulating 3D clay aesthetic */}
-            <div className="absolute -right-6 top-1/2 -translate-y-1/2 w-28 h-28 bg-gradient-to-tr from-indigo-300/40 to-violet-400/40 rounded-full blur-md pointer-events-none" />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-gradient-to-br from-gold/30 to-amber-400/30 rounded-2xl rotate-12 shadow-inner pointer-events-none flex items-center justify-center">
-              <Trophy className="w-6 h-6 text-indigo-600/70 animate-bounce" />
+        {/* Swipable Focus Cards Carousel */}
+        {aspects.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3 px-1">
+              Focus Areas
+            </h3>
+            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {aspects.map((aspect) => (
+                <div 
+                  key={aspect.name}
+                  className="flex-shrink-0 w-[290px] snap-center bg-gradient-to-br from-indigo-50/90 to-violet-50/90 border border-indigo-200/40 rounded-3xl p-5 relative overflow-hidden shadow-sm flex flex-col justify-between ring-1 ring-white/60"
+                >
+                  <div>
+                    <div className="flex justify-between items-start">
+                      <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest leading-none bg-indigo-50 border border-indigo-200/30 px-2 py-0.5 rounded-full">
+                        Aspect
+                      </span>
+                      <span className="text-[10px] font-black text-indigo-600 bg-white px-1.5 py-0.5 rounded-md border border-indigo-100 shadow-xs">
+                        {aspect.score || 5}/10
+                      </span>
+                    </div>
+                    
+                    <h4 className="text-base font-black text-slate-800 mt-2.5 leading-tight">
+                      {aspect.name}
+                    </h4>
+                    
+                    {aspect.vision && (
+                      <p className="text-[10px] italic text-slate-500 mt-1 line-clamp-1 font-medium">
+                        "{aspect.vision}"
+                      </p>
+                    )}
+
+                    <p className="text-xs text-slate-700 mt-2.5 font-semibold leading-relaxed line-clamp-3">
+                      {aspect.focus || getAspectNudge(aspect.name)}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <Link
+                      to="/journal"
+                      state={{ selectedAspect: aspect.name }}
+                      className="px-3.5 py-1.5 bg-slate-900 text-white font-bold rounded-lg text-[10px] hover:bg-slate-800 transition-all flex items-center gap-1"
+                    >
+                      <BookOpen className="w-3 h-3 text-gold" />
+                      Reflect
+                    </Link>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -265,17 +410,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Asymmetric 2-Column Section: Left (Wheel) and Right (Tasks & Coach Tip) */}
-        <div className="grid grid-cols-12 gap-4 items-stretch">
+        {/* Grid Section: Left (Wheel) and Right (Goals & Advice) */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
           
           {/* Wheel of Life Card (7 Columns) */}
-          <div className="col-span-7 bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-4 border border-gray-100/50 flex flex-col justify-between ring-1 ring-white/60">
+          <div className="col-span-1 md:col-span-7 bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-5 border border-gray-100/50 flex flex-col justify-between ring-1 ring-white/60">
             <div>
               <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2 px-1">
                 Balance Wheel
               </h3>
             </div>
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center py-4">
               <WheelVisualization aspects={aspects} hideCenterText={false} className="w-full scale-105" />
             </div>
             <div className="mt-3 text-center">
@@ -287,67 +432,197 @@ export default function Dashboard() {
           </div>
 
           {/* Right Column Stacked Widgets (5 Columns) */}
-          <div className="col-span-5 flex flex-col gap-4 justify-between">
+          <div className="col-span-1 md:col-span-5 flex flex-col gap-6 justify-between">
             
-            {/* Active Goals Widget */}
-            <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-4 border border-gray-100/50 flex-1 flex flex-col justify-between ring-1 ring-white/60">
+            {/* Goals Column/Section */}
+            <div className="flex-1 flex flex-col justify-between">
               <div>
-                <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1">
-                  <ClipboardCheck className="w-3.5 h-3.5 text-primary" />
-                  Goals
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5 px-1">
+                  <ClipboardCheck className="w-4 h-4 text-indigo-500" />
+                  Action Goals
                 </h3>
-                <div className="space-y-2">
-                  {activeTasks.length > 0 ? (
-                    activeTasks.map((t) => (
-                      <button
-                        key={t.id}
-                        onClick={() => handleToggleTask(t.id)}
-                        className="w-full flex items-start gap-1.5 text-left group"
-                      >
-                        <Circle className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0 group-hover:text-primary transition-colors" />
-                        <span className="text-[11px] font-medium text-slate-700 leading-tight line-clamp-2">
-                          {t.title}
+                <div className="space-y-3">
+                  {state.memory?.goals && state.memory.goals.length > 0 ? (
+                    state.memory.goals.slice(0, 3).map((goal, idx) => (
+                      <div key={idx} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm p-4 border border-gray-100/50 flex items-start gap-3 ring-1 ring-white/60 hover:scale-[1.01] transition-transform">
+                        <div className="w-6 h-6 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px]">🎯</span>
+                        </div>
+                        <span className="text-[11px] font-semibold text-slate-700 leading-relaxed">
+                          {goal}
                         </span>
-                      </button>
+                      </div>
                     ))
                   ) : (
-                    <div className="text-center py-4">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">All Done</p>
-                      <p className="text-[8px] text-slate-500 mt-0.5">No pending tasks.</p>
+                    <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-100/50 p-6 text-center shadow-xs ring-1 ring-white/60">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">No Goals Set</p>
+                      <p className="text-[8px] text-slate-500 mt-0.5">Riley will extract goals from your calls.</p>
                     </div>
                   )}
                 </div>
               </div>
-              <div className="mt-3">
-                <Link to="/tasks" className="text-[9px] font-black text-primary hover:opacity-80 transition-opacity uppercase tracking-wider block text-center">
-                  All Goals
-                </Link>
-              </div>
+              {state.memory?.goals && state.memory.goals.length > 0 && (
+                <div className="mt-3.5 text-center">
+                  <Link to="/tasks" className="text-[9px] font-black text-primary hover:opacity-80 transition-opacity uppercase tracking-wider block bg-white/60 border border-gray-200/20 py-2 rounded-xl shadow-xs">
+                    All Goals
+                  </Link>
+                </div>
+              )}
             </div>
 
-            {/* Coach Insight Snippet */}
-            <div className="bg-gradient-to-br from-rose-50/90 to-pink-50/90 rounded-3xl shadow-xl p-4 border border-rose-100/50 flex-1 flex flex-col justify-between ring-1 ring-white/60">
+            {/* Coach Advice Column/Section */}
+            <div className="flex-1 flex flex-col justify-between">
               <div>
-                <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  Coach Tip
+                <h3 className="text-xs font-black text-rose-500 uppercase tracking-widest mb-3 flex items-center gap-1.5 px-1">
+                  <MessageSquare className="w-4 h-4 text-rose-500" />
+                  Coach Advice
                 </h3>
-                <p className="text-[11px] text-slate-700 leading-relaxed font-medium line-clamp-4">
-                  {lowestAspect 
-                    ? `Your ${lowestAspect.name} aspect needs attention today. Try speaking to the coach about your vision to form a micro-habit.`
-                    : "Speak with your coach regularly to extract actionable goals and balance your life segments."
-                  }
-                </p>
+                <div className="space-y-3">
+                  {state.memory?.coach_advice && state.memory.coach_advice.length > 0 ? (
+                    state.memory.coach_advice.slice(0, 3).map((advice, idx) => (
+                      <div key={idx} className="bg-gradient-to-br from-rose-50/90 to-pink-50/90 rounded-2xl shadow-sm p-4 border border-rose-100/40 flex items-start gap-3 ring-1 ring-white/50 hover:scale-[1.01] transition-transform">
+                        <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] text-pink-600">💡</span>
+                        </div>
+                        <p className="text-[11px] font-semibold text-slate-700 leading-relaxed">
+                          {advice}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-100/50 p-6 text-center shadow-xs ring-1 ring-white/60">
+                      <p className="text-[11px] text-slate-700 leading-relaxed font-semibold">
+                        Your Riley aspect advice will populate here to guide your habits.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="mt-2">
-                <Link to="/coach" className="text-[9px] font-black text-rose-600 hover:opacity-80 transition-opacity uppercase tracking-wider block text-center">
-                  Chat Now
-                </Link>
-              </div>
+              {state.memory?.coach_advice && state.memory.coach_advice.length > 0 && (
+                <div className="mt-3.5 text-center">
+                  <Link to="/coach" className="text-[9px] font-black text-rose-600 hover:opacity-80 transition-opacity uppercase tracking-wider block bg-rose-50/55 border border-rose-100/30 py-2 rounded-xl shadow-xs">
+                    Chat Now
+                  </Link>
+                </div>
+              )}
             </div>
 
           </div>
 
+        </div>
+
+        {/* Reflections & History Section */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-12 gap-5">
+          
+          {/* Journal History Card (7 Columns) */}
+          <div className="col-span-1 md:col-span-7 bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-5 border border-gray-100/50 flex flex-col justify-between ring-1 ring-white/60">
+            <div>
+              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3 px-1">
+                Reflection History
+              </h3>
+              <div className="space-y-3">
+                {journals.length > 0 ? (
+                  [...journals].reverse().slice(0, 3).map((entry) => (
+                    <div key={entry.id} className="p-3 bg-slate-50/60 border border-slate-100 rounded-2xl flex flex-col gap-1 hover:bg-slate-50 transition-colors">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                          {entry.title || 'Untitled Entry'}
+                          <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50/50 border border-indigo-100/40 px-2 py-0.5 rounded-full">
+                            {entry.mapped_aspects?.[0] || 'Reflection'}
+                          </span>
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-400">
+                          {new Date(entry.timestamp).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">
+                        {entry.content}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-400 italic text-center py-6">
+                    No reflections logged yet. Click 'Reflect' to start your first entry!
+                  </p>
+                )}
+              </div>
+            </div>
+            {journals.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-gray-100/60 text-center">
+                <Link to="/journal" className="text-[9px] font-black text-primary hover:opacity-80 transition-opacity uppercase tracking-wider">
+                  Write New Entry
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Highlights & Trends Card (5 Columns) */}
+          <div className="col-span-1 md:col-span-5 bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-5 border border-gray-100/50 flex flex-col justify-between ring-1 ring-white/60">
+            <div>
+              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3 px-1">
+                Reflections Highlight
+              </h3>
+              
+              {journals.length > 0 ? (
+                <div className="space-y-4">
+                  {/* Top Reflected Aspect */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100/50 shadow-inner">
+                      <span className="text-lg">💭</span>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-indigo-500 uppercase tracking-wider leading-none">Most Reflected</p>
+                      <p className="text-xs font-black text-slate-700 mt-1">
+                        {(() => {
+                          const counts = {};
+                          journals.forEach(j => {
+                            (j.mapped_aspects || []).forEach(a => {
+                              counts[a] = (counts[a] || 0) + 1;
+                            });
+                          });
+                          const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+                          return sorted[0]?.[0] || 'None yet';
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Total Reflections */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center border border-amber-100/50 shadow-inner">
+                      <span className="text-lg">🔥</span>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-amber-600 uppercase tracking-wider leading-none">Total Reflections</p>
+                      <p className="text-xs font-black text-slate-700 mt-1">
+                        {journals.length} {journals.length === 1 ? 'entry' : 'entries'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Highlights Bullet realized from Journals */}
+                  <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-2xl">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider leading-none mb-1">Key Realization</p>
+                    <p className="text-[10px] font-semibold text-slate-600 leading-relaxed italic line-clamp-2">
+                      "{journals[journals.length - 1]?.content.slice(0, 80)}..."
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Empty Analytics</p>
+                  <p className="text-[8px] text-slate-500 mt-0.5">Write entries to unlock stats.</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-4 pt-3 border-t border-gray-100/60 text-center">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">
+                Reflections are private
+              </span>
+            </div>
+          </div>
+          
         </div>
 
       </div>
@@ -357,7 +632,7 @@ export default function Dashboard() {
         onClose={() => setShowMoodModal(false)}
         initialMood={activeMoodTier}
         initialTags={selectedTags}
-        onSave={({ mood: savedMood, tags: savedTags, impacts: savedImpacts, context: savedContext }) => {
+        onSave={async ({ mood: savedMood, tags: savedTags, impacts: savedImpacts, context: savedContext }) => {
           const log = {
             mood: savedMood,
             tags: savedTags,
@@ -370,6 +645,25 @@ export default function Dashboard() {
           setMood(savedMood);
           localStorage.setItem('user_mood', savedMood);
           setShowMoodModal(false);
+
+          try {
+            await updateUserState({
+              vision: state.vision,
+              completedOnboarding: state.completedOnboarding,
+              aspects: state.aspects,
+              memory: state.memory,
+              mood: log
+            });
+            dispatch({
+              type: 'SYNC_USER_STATE',
+              payload: {
+                ...state,
+                mood: log
+              }
+            });
+          } catch (err) {
+            console.error("Failed to persist mood to DB state:", err);
+          }
         }}
       />
 

@@ -1,37 +1,15 @@
 import WheelVisualization from '../components/ui/WheelVisualization.js';
 import { useWheel } from '../hooks/useWheel.js';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
 export default function Wheel() {
   const navigate = useNavigate();
-  const { aspects, updateAspect } = useWheel();
+  const { aspects } = useWheel();
   const [selectedAspect, setSelectedAspect] = useState(null);
   
   const aspect = aspects.find((a) => a.name === selectedAspect);
-  
-  const [localScore, setLocalScore] = useState(5);
-  const [localVision, setLocalVision] = useState('');
-  const [localActionSteps, setLocalActionSteps] = useState('');
-
-  useEffect(() => {
-    if (aspect) {
-      setLocalScore(aspect.score || 5);
-      setLocalVision(aspect.vision || '');
-      setLocalActionSteps(aspect.actionSteps || '');
-    }
-  }, [selectedAspect, aspect]);
-
-  const handleSave = () => {
-    if (selectedAspect) {
-      updateAspect(selectedAspect, {
-        score: localScore,
-        vision: localVision,
-        actionSteps: localActionSteps,
-      });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-light-gray py-8 px-4">
@@ -52,68 +30,46 @@ export default function Wheel() {
           <div className="bg-white rounded-xl shadow-lg p-8 flex flex-col items-center">
             <WheelVisualization
               aspects={aspects}
-              editable={true}
+              editable={false}
               onClick={setSelectedAspect}
             />
           </div>
 
           <div className="space-y-6">
-            {selectedAspect ? (
+            {aspect ? (
               <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-2xl font-bold text-primary mb-4">{selectedAspect}</h2>
+                <div className="flex justify-between items-baseline mb-4">
+                  <h2 className="text-2xl font-bold text-primary">{aspect.name}</h2>
+                  <span className="text-2xl font-black text-gold bg-gold/10 px-3 py-1 rounded-xl">
+                    {aspect.score || 5}/10
+                  </span>
+                </div>
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Current Score (1-10): <span className="font-bold text-gold">{localScore}</span>
-                    </label>
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={localScore}
-                      onChange={(e) => setLocalScore(parseInt(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <div className="flex justify-between text-sm text-gray-500 mt-1">
-                      <span>1</span>
-                      <span>10</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-1">
                       Vision
-                    </label>
-                    <input
-                      type="text"
-                      value={localVision}
-                      onChange={(e) => setLocalVision(e.target.value)}
-                      placeholder="Enter your vision for this aspect..."
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                    />
+                    </h3>
+                    <p className="text-sm font-semibold text-slate-700 bg-slate-50 p-3.5 rounded-xl border border-gray-100 italic">
+                      "{aspect.vision || 'No vision stated yet.'}"
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Action Steps
-                    </label>
-                    <textarea
-                      value={localActionSteps}
-                      onChange={(e) => setLocalActionSteps(e.target.value)}
-                      placeholder="What actions will you take to improve this aspect?"
-                      className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                    />
-                  </div>
-                </div>
+                  {aspect.actionSteps && (
+                    <div>
+                      <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-1">
+                        Action Steps
+                      </h3>
+                      <p className="text-sm font-medium text-slate-600 bg-slate-50 p-3.5 rounded-xl border border-gray-100 whitespace-pre-line">
+                        {aspect.actionSteps}
+                      </p>
+                    </div>
+                  )}
 
-                <div className="mt-6 flex justify-end">
-                  <button
-                    onClick={handleSave}
-                    className="px-6 py-2 bg-gold text-primary font-bold rounded-lg hover:bg-gold-dark"
-                  >
-                    Save Changes
-                  </button>
+                  <div className="pt-2 text-[10px] text-gray-400 font-bold bg-amber-50/40 border border-amber-100/40 p-3 rounded-xl flex items-start gap-1.5">
+                    <span className="text-sm leading-none">💡</span>
+                    <span>This rating and vision is dynamically updated by the AI Coach (Riley) based on your coaching session transcripts.</span>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -125,16 +81,20 @@ export default function Wheel() {
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-primary mb-4">All Aspects</h2>
               <div className="space-y-3">
-                {aspects.map((aspect) => (
+                {aspects.map((a) => (
                   <div
-                    key={aspect.name}
-                    onClick={() => setSelectedAspect(aspect.name)}
-                    className="p-4 border rounded-lg cursor-pointer hover:border-gold transition-colors"
+                    key={a.name}
+                    onClick={() => setSelectedAspect(a.name)}
+                    className={`p-4 border rounded-xl cursor-pointer transition-colors ${
+                      selectedAspect === a.name 
+                        ? 'border-gold bg-gold/5' 
+                        : 'border-gray-100 hover:border-gold bg-white'
+                    }`}
                   >
                     <div className="flex justify-between items-center">
-                      <h3 className="font-semibold text-primary">{aspect.name}</h3>
+                      <h3 className="font-semibold text-primary">{a.name}</h3>
                       <span className="text-2xl font-bold text-gold">
-                        {aspect.score || 5}/10
+                        {a.score || 5}/10
                       </span>
                     </div>
                   </div>

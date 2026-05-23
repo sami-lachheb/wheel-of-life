@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext.js';
+import appLogo from '../assets/logo.png';
 import { useWheel } from '../hooks/useWheel.js';
 import { updateUserState } from '../utils/api.js';
 import WheelVisualization, { getNormalizedAspects, CANONICAL_ASPECTS } from '../components/ui/WheelVisualization.js';
@@ -109,20 +110,6 @@ export default function Wheel() {
     }
   };
 
-  // Bottom Navigation helper to trigger mock features or route
-  const handleTabClick = (tab) => {
-    if (tab === 'dashboard') {
-      navigate('/dashboard');
-    } else if (tab === 'goals') {
-      navigate('/tasks');
-    } else if (tab === 'community') {
-      setToastMessage('Community space coming soon!');
-      setTimeout(() => setToastMessage(null), 3000);
-    } else if (tab === 'profile') {
-      navigate('/profile');
-    }
-  };
-
   return (
     <div className="relative min-h-screen bg-slate-100 flex justify-center items-start overflow-y-auto">
       
@@ -133,24 +120,14 @@ export default function Wheel() {
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             {/* Hexagon Rainbow Wheel Logo */}
-            <svg viewBox="0 0 100 100" className="w-9 h-9">
-              <path d="M 50 10 L 85 30 L 85 70 L 50 90 L 15 70 L 15 30 Z" fill="none" stroke="#6366F1" strokeWidth="5" />
-              <path d="M 50 10 L 50 50 Z" stroke="#2196F3" strokeWidth="4" />
-              <path d="M 85 30 L 50 50 Z" stroke="#4CAF50" strokeWidth="4" />
-              <path d="M 85 70 L 50 50 Z" stroke="#FF9800" strokeWidth="4" />
-              <path d="M 50 90 L 50 50 Z" stroke="#FFC107" strokeWidth="4" />
-              <path d="M 15 70 L 50 50 Z" stroke="#E91E63" strokeWidth="4" />
-              <path d="M 15 30 L 50 50 Z" stroke="#9C27B0" strokeWidth="4" />
-            </svg>
+            <img src={appLogo} alt="Wheel of Life Logo" className="w-9 h-9 object-contain" />
             <span className="font-black text-slate-800 text-sm tracking-tight">Wheel of Life</span>
           </div>
           
           <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-full border border-slate-200/60 shadow-sm">
-            <img 
-              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&h=100" 
-              alt="Avatar" 
-              className="w-6 h-6 rounded-full object-cover"
-            />
+            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#6366F1] to-[#4F46E5] flex items-center justify-center text-white font-black text-[9px] uppercase">
+              {username.charAt(0)}
+            </div>
             <span className="text-xs font-bold text-slate-700">{username}</span>
           </div>
         </div>
@@ -173,6 +150,7 @@ export default function Wheel() {
           <WheelVisualization 
             aspects={aspects} 
             onClick={handleOpenEditor} 
+            username={username}
           />
         </div>
 
@@ -224,40 +202,6 @@ export default function Wheel() {
           </button>
         </div>
 
-        {/* Custom Bottom Tab Navigation (Mockup Style) */}
-        <div className="absolute bottom-5 left-5 right-5 z-40 bg-white border border-slate-200/50 rounded-2xl py-2 px-6 shadow-lg flex justify-between items-center">
-          <button 
-            onClick={() => handleTabClick('dashboard')}
-            className="flex flex-col items-center gap-1 text-[#2196F3]"
-          >
-            <LayoutGrid className="w-5 h-5" />
-            <span className="text-[9px] font-extrabold tracking-wider">Dashboard</span>
-          </button>
-          
-          <button 
-            onClick={() => handleTabClick('goals')}
-            className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <Target className="w-5 h-5" />
-            <span className="text-[9px] font-bold tracking-wider">Goals</span>
-          </button>
-          
-          <button 
-            onClick={() => handleTabClick('community')}
-            className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <Users className="w-5 h-5" />
-            <span className="text-[9px] font-bold tracking-wider">Community</span>
-          </button>
-          
-          <button 
-            onClick={() => handleTabClick('profile')}
-            className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <User className="w-5 h-5" />
-            <span className="text-[9px] font-bold tracking-wider">Profile</span>
-          </button>
-        </div>
 
         {/* Dynamic score updated Toast alert */}
         {toastMessage && (

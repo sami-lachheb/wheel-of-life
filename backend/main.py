@@ -126,7 +126,9 @@ def get_state(background_tasks: BackgroundTasks, username: str = Depends(get_cur
         except Exception:
             pass
 
-    background_tasks.add_task(analyze_coach_transcripts_background, username)
+    if state.get("has_new_riley_conversation"):
+        logger.info(f"New Riley conversation detected. Queueing background transcript analysis for user {username}")
+        background_tasks.add_task(analyze_coach_transcripts_background, username)
     return state
 
 @app.put("/api/user/state")
@@ -613,3 +615,13 @@ async def coach_live_websocket(
         except Exception:
             pass
         await websocket.close(code=1011)
+    finally:
+        try:
+            user = get_user(username)
+            if user:
+                current_state = json.loads(user["state"] or "{}")
+                current_state["has_new_riley_conversation"] = True
+                update_user_field(username, "state", current_state)
+                logger.info(f"Set has_new_riley_conversation=True for user {username}")
+        except Exception as e:
+            logger.error(f"Failed to set has_new_riley_conversation flag: {e}")

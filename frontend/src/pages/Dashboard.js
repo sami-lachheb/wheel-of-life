@@ -369,103 +369,98 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Grid Section: Left (Wheel) and Right (Goals & Advice) */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+        {/* Wheel of Life Card (Full Width) */}
+        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-5 border border-gray-100/50 flex flex-col justify-between ring-1 ring-white/60 mb-6">
+          <div>
+            <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2 px-1">
+              Balance Wheel
+            </h3>
+          </div>
+          <div className="flex-1 flex items-center justify-center py-4">
+            <WheelVisualization aspects={aspects} hideCenterText={false} className="w-full max-w-[340px]" username={username} />
+          </div>
+          <div className="mt-3 text-center">
+            <Link to="/wheel" className="text-[10px] font-black text-primary hover:opacity-80 transition-opacity uppercase tracking-wider flex items-center justify-center gap-1">
+              <Disc className="w-3 h-3" />
+              Expand Wheel
+            </Link>
+          </div>
+        </div>
+
+        {/* Stacked Widgets Below the Wheel (Goals & Advice) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch mb-6">
           
-          {/* Wheel of Life Card (7 Columns) */}
-          <div className="col-span-1 md:col-span-7 bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-5 border border-gray-100/50 flex flex-col justify-between ring-1 ring-white/60">
+          {/* Goals Section */}
+          <div className="flex flex-col justify-between bg-white/80 backdrop-blur-md rounded-3xl shadow-md p-5 border border-gray-100/50 ring-1 ring-white/60">
             <div>
-              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2 px-1">
-                Balance Wheel
+              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5 px-1">
+                <ClipboardCheck className="w-4 h-4 text-indigo-500" />
+                Action Goals
               </h3>
+              <div className="space-y-3">
+                {state.memory?.goals && state.memory.goals.length > 0 ? (
+                  state.memory.goals.slice(0, 3).map((goal, idx) => (
+                    <div key={idx} className="bg-slate-50/50 rounded-2xl p-3 border border-slate-100 flex items-start gap-3 hover:scale-[1.01] transition-transform">
+                      <div className="w-6 h-6 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <Target className="w-3 h-3 text-emerald-600" />
+                      </div>
+                      <span className="text-[11px] font-semibold text-slate-700 leading-relaxed">
+                        {goal}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="bg-slate-50/30 rounded-2xl border border-gray-100/30 p-6 text-center">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">No Goals Set</p>
+                    <p className="text-[8px] text-slate-500 mt-0.5">Riley will extract goals from your calls.</p>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex-1 flex items-center justify-center py-4">
-              <WheelVisualization aspects={aspects} hideCenterText={false} className="w-full scale-105" />
-            </div>
-            <div className="mt-3 text-center">
-              <Link to="/wheel" className="text-[10px] font-black text-primary hover:opacity-80 transition-opacity uppercase tracking-wider flex items-center justify-center gap-1">
-                <Disc className="w-3 h-3" />
-                Expand Wheel
-              </Link>
-            </div>
+            {state.memory?.goals && state.memory.goals.length > 0 && (
+              <div className="mt-4 text-center">
+                <Link to="/tasks" className="text-[9px] font-black text-primary hover:opacity-80 transition-opacity uppercase tracking-wider block bg-slate-50/70 border border-gray-200/20 py-2.5 rounded-xl shadow-xs">
+                  All Goals
+                </Link>
+              </div>
+            )}
           </div>
 
-          {/* Right Column Stacked Widgets (5 Columns) */}
-          <div className="col-span-1 md:col-span-5 flex flex-col gap-6 justify-between">
-            
-            {/* Goals Column/Section */}
-            <div className="flex-1 flex flex-col justify-between">
-              <div>
-                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5 px-1">
-                  <ClipboardCheck className="w-4 h-4 text-indigo-500" />
-                  Action Goals
-                </h3>
-                <div className="space-y-3">
-                  {state.memory?.goals && state.memory.goals.length > 0 ? (
-                    state.memory.goals.slice(0, 3).map((goal, idx) => (
-                      <div key={idx} className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm p-4 border border-gray-100/50 flex items-start gap-3 ring-1 ring-white/60 hover:scale-[1.01] transition-transform">
-                        <div className="w-6 h-6 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-                          <Target className="w-3 h-3 text-emerald-600" />
-                        </div>
-                        <span className="text-[11px] font-semibold text-slate-700 leading-relaxed">
-                          {goal}
-                        </span>
+          {/* Coach Advice Section */}
+          <div className="flex flex-col justify-between bg-white/80 backdrop-blur-md rounded-3xl shadow-md p-5 border border-gray-100/50 ring-1 ring-white/60">
+            <div>
+              <h3 className="text-xs font-black text-rose-500 uppercase tracking-widest mb-3 flex items-center gap-1.5 px-1">
+                <MessageSquare className="w-4 h-4 text-rose-500" />
+                Coach Advice
+              </h3>
+              <div className="space-y-3">
+                {state.memory?.coach_advice && state.memory.coach_advice.length > 0 ? (
+                  state.memory.coach_advice.slice(0, 3).map((advice, idx) => (
+                    <div key={idx} className="bg-gradient-to-br from-rose-50/90 to-pink-50/90 rounded-2xl shadow-sm p-3.5 border border-rose-100/40 flex items-start gap-3 hover:scale-[1.01] transition-transform">
+                      <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
+                        <Lightbulb className="w-3 h-3 text-pink-600" />
                       </div>
-                    ))
-                  ) : (
-                    <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-100/50 p-6 text-center shadow-xs ring-1 ring-white/60">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">No Goals Set</p>
-                      <p className="text-[8px] text-slate-500 mt-0.5">Riley will extract goals from your calls.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {state.memory?.goals && state.memory.goals.length > 0 && (
-                <div className="mt-3.5 text-center">
-                  <Link to="/tasks" className="text-[9px] font-black text-primary hover:opacity-80 transition-opacity uppercase tracking-wider block bg-white/60 border border-gray-200/20 py-2 rounded-xl shadow-xs">
-                    All Goals
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            {/* Coach Advice Column/Section */}
-            <div className="flex-1 flex flex-col justify-between">
-              <div>
-                <h3 className="text-xs font-black text-rose-500 uppercase tracking-widest mb-3 flex items-center gap-1.5 px-1">
-                  <MessageSquare className="w-4 h-4 text-rose-500" />
-                  Coach Advice
-                </h3>
-                <div className="space-y-3">
-                  {state.memory?.coach_advice && state.memory.coach_advice.length > 0 ? (
-                    state.memory.coach_advice.slice(0, 3).map((advice, idx) => (
-                      <div key={idx} className="bg-gradient-to-br from-rose-50/90 to-pink-50/90 rounded-2xl shadow-sm p-4 border border-rose-100/40 flex items-start gap-3 ring-1 ring-white/50 hover:scale-[1.01] transition-transform">
-                        <div className="w-6 h-6 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                          <Lightbulb className="w-3 h-3 text-pink-600" />
-                        </div>
-                        <p className="text-[11px] font-semibold text-slate-700 leading-relaxed">
-                          {advice}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-100/50 p-6 text-center shadow-xs ring-1 ring-white/60">
-                      <p className="text-[11px] text-slate-700 leading-relaxed font-semibold">
-                        Your Riley aspect advice will populate here to guide your habits.
+                      <p className="text-[11px] font-semibold text-slate-700 leading-relaxed">
+                        {advice}
                       </p>
                     </div>
-                  )}
-                </div>
+                  ))
+                ) : (
+                  <div className="bg-slate-50/30 rounded-2xl border border-gray-100/30 p-6 text-center">
+                    <p className="text-[11px] text-slate-700 leading-relaxed font-semibold">
+                      Your Riley aspect advice will populate here to guide your habits.
+                    </p>
+                  </div>
+                )}
               </div>
-              {state.memory?.coach_advice && state.memory.coach_advice.length > 0 && (
-                <div className="mt-3.5 text-center">
-                  <Link to="/coach" className="text-[9px] font-black text-rose-600 hover:opacity-80 transition-opacity uppercase tracking-wider block bg-rose-50/55 border border-rose-100/30 py-2 rounded-xl shadow-xs">
-                    Chat Now
-                  </Link>
-                </div>
-              )}
             </div>
-
+            {state.memory?.coach_advice && state.memory.coach_advice.length > 0 && (
+              <div className="mt-4 text-center">
+                <Link to="/coach" className="text-[9px] font-black text-rose-600 hover:opacity-80 transition-opacity uppercase tracking-wider block bg-rose-50/55 border border-rose-100/30 py-2.5 rounded-xl shadow-xs">
+                  Chat Now
+                </Link>
+              </div>
+            )}
           </div>
 
         </div>

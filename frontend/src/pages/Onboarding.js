@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext.js';
+import appLogo from '../assets/logo.png';
 import { validateAspectCount } from '../utils/validators.js';
 import WheelVisualization from '../components/ui/WheelVisualization.js';
 import { registerUser, loginUser, updateUserState } from '../utils/api.js';
@@ -375,14 +376,7 @@ export default function Onboarding() {
         {/* Brand Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <svg viewBox="0 0 200 200" className="w-12 h-12">
-              <circle cx="100" cy="100" r="90" fill="#6366f1" />
-              <circle cx="100" cy="100" r="85" fill="none" stroke="#f97316" strokeWidth="2" />
-              <path d="M100,100 L100,10" stroke="#f97316" strokeWidth="2" />
-              <path d="M100,100 L190,100" stroke="#f97316" strokeWidth="2" />
-              <path d="M100,100 L100,190" stroke="#f97316" strokeWidth="2" />
-              <path d="M100,100 L10,100" stroke="#f97316" strokeWidth="2" />
-            </svg>
+            <img src={appLogo} alt="Wheel of Life Logo" className="w-12 h-12 object-contain" />
           </div>
           <h1 className="text-3xl font-extrabold text-primary mb-1">Wheel of Life</h1>
           <p className="text-gray-500 text-sm">Your journey to balanced living</p>

@@ -36,6 +36,8 @@ def analyze_coach_transcripts_background(username: str):
         
         if not transcripts:
             logger.info("No transcripts found to analyze.")
+            state["has_new_riley_conversation"] = False
+            update_user_field(username, "state", state)
             return
 
         memory = state.get("memory") or {}
@@ -52,6 +54,8 @@ def analyze_coach_transcripts_background(username: str):
 
         if not new_transcripts:
             logger.info("No new transcripts since last analysis.")
+            state["has_new_riley_conversation"] = False
+            update_user_field(username, "state", state)
             return
 
         logger.info(f"Analyzing {len(new_transcripts)} new transcript turns.")
@@ -130,6 +134,7 @@ def analyze_coach_transcripts_background(username: str):
         # Save nested state
         state["memory"] = memory
         state["aspects"] = aspects
+        state["has_new_riley_conversation"] = False
         
         update_user_field(username, "state", state)
         logger.info(f"Successfully updated aspects, memory, and advice for {username}")

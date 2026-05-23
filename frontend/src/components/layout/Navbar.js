@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useUser } from '../../contexts/UserContext.js';
 import { LogOut, User, Home, BookOpen, MessageSquare, Disc, ClipboardCheck } from 'lucide-react';
+import appLogo from '../../assets/logo.png';
 
 export default function Navbar({
   transparent = false,
@@ -19,8 +20,8 @@ export default function Navbar({
     navigate('/');
   };
 
-  // Hide completely on the journal and wheel pages to avoid navigation collisions
-  if (location.pathname === '/journal' || location.pathname === '/wheel') {
+  // Hide completely on the journal page to avoid navigation collisions
+  if (location.pathname === '/journal') {
     return null;
   }
 
@@ -40,17 +41,30 @@ export default function Navbar({
         <nav className="w-full bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-full py-3 px-4 shadow-2xl flex justify-between items-center pointer-events-auto animate-fade-in">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const isDashboardLogo = item.path === '/dashboard';
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={`flex items-center justify-center transition-all ${
                   isActive
-                    ? 'w-11 h-11 rounded-full bg-white text-slate-900 shadow-md scale-105'
+                    ? (isDashboardLogo
+                        ? 'w-11 h-11 scale-110 text-white'
+                        : 'w-11 h-11 rounded-full bg-white text-slate-900 shadow-md scale-105')
                     : 'w-11 h-11 text-white/60 hover:text-white hover:scale-105'
                 }`}
               >
-                <item.Icon className="w-5 h-5" />
+                {isDashboardLogo ? (
+                  <img
+                    src={appLogo}
+                    alt="Home"
+                    className={`w-full h-full p-1.5 object-contain transition-all ${
+                      isActive ? 'scale-110 opacity-100' : 'opacity-80 hover:opacity-100'
+                    }`}
+                  />
+                ) : (
+                  <item.Icon className="w-5 h-5" />
+                )}
               </Link>
             );
           })}
@@ -71,10 +85,7 @@ export default function Navbar({
         <div className="flex justify-between items-center h-16">
           <div className="flex-shrink-0 flex items-center">
             <Link to="/" className="flex items-center gap-2">
-              <svg viewBox="0 0 24 24" className="w-8 h-8 text-gold" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" className="text-primary" fill="#6366f1" />
-                <path d="M12 2v20M2 12h20" stroke="#f97316" />
-              </svg>
+              <img src={appLogo} alt="Logo" className="w-8 h-8 object-contain" />
               <span className={`font-bold text-xl ${textColor}`}>Wheel of Life</span>
             </Link>
           </div>

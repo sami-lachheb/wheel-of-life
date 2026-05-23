@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext.js';
 import { createJournal, getJournalPrompt, getJournalSuggestion, getJournalReflection } from '../utils/api.js';
 import { ArrowLeft, Home, Sparkles, ChevronRight, HelpCircle, Lightbulb, MessageSquare, MapPin, Smile, Mic } from 'lucide-react';
+import appLogo from '../assets/logo.png';
 
 const ASPECTS = ['Health & Fitness', 'Finance & Wealth', 'Relationships & Family', 'Career & Work', 'Personal Growth', 'Fun & Recreation', 'Environment', 'Community', 'Spirituality', 'Partner & Love'];
 import EmotionSelectorSheet from '../components/ui/EmotionSelectorSheet.js';
@@ -514,7 +515,7 @@ export default function Journal() {
             onClick={() => navigate('/dashboard')}
             className="flex flex-col items-center justify-center w-12 h-12 rounded-full hover:bg-white/10 transition-colors text-white"
           >
-            <Home className="w-5 h-5" />
+            <img src={appLogo} alt="Home" className="w-full h-full p-1.5 object-contain opacity-80 hover:opacity-100 transition-all" />
           </button>
 
           <button

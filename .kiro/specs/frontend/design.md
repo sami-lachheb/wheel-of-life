@@ -257,10 +257,16 @@ Dashboard (/dashboard)
   * Top Left: Standardized back pill (`ArrowLeft` icon + "Previous") bound to `navigate(-1)`.
   * Persistent Home Button: A standardized home navigation button (linking to `/dashboard`) must be present in the header/navbar of all feature pages, including the Coach page and the Journal page.
 - **Wheel of Life Page (`/wheel`)**:
-  * The Wheel page is **read-only** for the user.
-  * Satisfaction scores, visions, and action steps cannot be manually edited or updated by the user on this page.
-  * Manual editing controls (inputs, range sliders, and "Save" buttons) are disabled/hidden. 
-  * Life segment scores are updated exclusively by the background transcript analyzer process based on conversations with the Coach.
+  * **Layout Structure**: 
+    - **Header Section**: Overall Balance Score Card (displaying average of all 8 aspects, e.g. "Score: 6.9/10" in prominent typography) and page title ("Your Personal Wheel of Life").
+    - **Central Wheel Component**: A 360x360 SVG radar/spider chart showing 8 segments, concentric circle grid lines (at 2, 4, 6, 8, 10), dotted segment dividers, outer text path aspect labels, aspect-specific Lucide icon badges at the outer edges, white center mask containing user avatar, and white score labels inside filled segments.
+    - **Score List Section**: Card list below the wheel displaying colored icon badges, bold aspect names, colored progress bars, and numerical scores.
+    - **Action Button**: Full-width "Update Scores" blue button (#2196F3).
+    - **Bottom Navigation**: Custom 4-tab bar (Dashboard, Goals, Community, Profile) matching the design specification.
+  * **Interactivity (Aspect Score Editor)**:
+    - Life aspects are fully editable. Clicking any segment on the wheel, any aspect in the score list, or the "Update Scores" button triggers a smooth slide-up bottom-sheet modal.
+    - The bottom-sheet features the selected aspect's icon badge, title, an interactive score range slider (1.0 to 10.0), and textarea inputs for Target Vision and Immediate Action Steps.
+    - Changes are committed locally to UserContext and synchronized to the backend database via the `/user/state` endpoint.
 
 ### Journal Entry Page Layout & Flow
 - **Minimalistic Screen Canvas**:

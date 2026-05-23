@@ -36,23 +36,77 @@ export default function Coach() {
   }, []);
 
   const silenceTimeoutRef = useRef(null);
+  const wordQueueRef = useRef([]);
+  const activeIntervalRef = useRef(null);
+  const wordsProcessedRef = useRef(new Set());
+  const fullTextRef = useRef('');
+
+  const resetAssistantTurn = useCallback(() => {
+    wordQueueRef.current = [];
+    wordsProcessedRef.current = new Set();
+    fullTextRef.current = '';
+    if (activeIntervalRef.current) {
+      clearInterval(activeIntervalRef.current);
+      activeIntervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (activeIntervalRef.current) {
+        clearInterval(activeIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const startTypewriterIfNeeded = useCallback(() => {
+    if (activeIntervalRef.current) return;
+
+    activeIntervalRef.current = setInterval(() => {
+      if (wordQueueRef.current.length > 0) {
+        const nextWord = wordQueueRef.current.shift();
+        setCurrentSubtitles((prev) => {
+          if (prev.startsWith(`${displayName}:`)) {
+            return nextWord;
+          }
+          return prev ? `${prev} ${nextWord}` : nextWord;
+        });
+      }
+    }, 320);
+  }, [displayName]);
 
   const handleUserTranscript = useCallback(
     (text) => {
       if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
       if (text?.trim()) {
+        resetAssistantTurn();
         setIsHeld(false);
         setCurrentSubtitles(`${displayName}: "${text}"`);
       }
     },
-    [displayName]
+    [displayName, resetAssistantTurn]
   );
 
   const handleAssistantTranscript = useCallback((text) => {
-    if (text?.trim()) {
-      setCurrentSubtitles(text);
+    if (!text?.trim()) return;
+
+    fullTextRef.current = text;
+    const allWords = text.trim().split(/\s+/);
+    
+    let addedAny = false;
+    allWords.forEach((word, index) => {
+      const wordId = `${index}-${word}`;
+      if (!wordsProcessedRef.current.has(wordId)) {
+        wordsProcessedRef.current.add(wordId);
+        wordQueueRef.current.push(word);
+        addedAny = true;
+      }
+    });
+
+    if (addedAny) {
+      startTypewriterIfNeeded();
     }
-  }, []);
+  }, [startTypewriterIfNeeded]);
 
   const handleReady = useCallback(() => {
     setConnectionError(null);
@@ -108,10 +162,11 @@ export default function Coach() {
     if (status === 'connected' && locationState.state?.initialMessage) {
       const initMsg = locationState.state.initialMessage;
       window.history.replaceState({}, document.title);
+      resetAssistantTurn();
       sendText(initMsg);
       setCurrentSubtitles(`${displayName}: "${initMsg}"`);
     }
-  }, [status, locationState, sendText, displayName]);
+  }, [status, locationState, sendText, displayName, resetAssistantTurn]);
 
   const handleSendMessage = (e) => {
     if (e) e.preventDefault();
@@ -120,6 +175,7 @@ export default function Coach() {
     const userMessage = messageText.trim();
     setMessageText('');
     setShowTextInput(false);
+    resetAssistantTurn();
     setCurrentSubtitles(`${displayName}: "${userMessage}"`);
     sendText(userMessage);
   };
@@ -130,6 +186,7 @@ export default function Coach() {
     if (nextMuted) {
       stopPlayback();
       setIsSpeaking(false);
+      resetAssistantTurn();
       setCurrentSubtitles('');
     }
   };
@@ -140,6 +197,7 @@ export default function Coach() {
     } else {
       stopPlayback();
       setIsSpeaking(false);
+      resetAssistantTurn();
       setIsHeld(true);
     }
   };
@@ -234,10 +292,17 @@ export default function Coach() {
               <Play className="w-8 h-8 text-white/80 animate-pulse mb-2" />
               <span className="text-xs font-bold uppercase tracking-widest text-white/70">Session Paused</span>
             </div>
-          ) : currentSubtitles ? (
-            <p className="text-sm font-bold leading-relaxed tracking-tight text-white/95 max-w-[210px] animate-fade-in">
-              {currentSubtitles}
-            </p>
+          ) : isSpeaking ? (
+            <div className="flex items-end gap-1.5 justify-center h-12">
+              <span className="w-2.5 h-6 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
+              <span className="w-2.5 h-10 bg-white rounded-full animate-bounce" />
+              <span className="w-2.5 h-6 bg-white/80 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
+            </div>
+          ) : status === 'ready' ? (
+            <div className="animate-fade-in flex flex-col items-center">
+              <ChevronDown className="w-8 h-8 text-white/40 animate-bounce mb-2" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Riley Listening</span>
+            </div>
           ) : (
             <div className="animate-fade-in flex flex-col items-center">
               <h2 className="text-2xl font-medium tracking-tight text-white/90">
@@ -253,6 +318,13 @@ export default function Coach() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Dedicated Subtitle Reading Zone */}
+      <div className="w-full min-h-[90px] flex items-center justify-center px-6 text-center z-10 -mt-2">
+        <p className="text-sm font-semibold leading-relaxed tracking-wide text-white/85 max-w-[340px] animate-fade-in transition-all duration-300">
+          {currentSubtitles || (status === 'ready' && !isHeld ? "How can I help you today?" : "")}
+        </p>
       </div>
 
       <div className="z-10 flex flex-col gap-4">

@@ -132,3 +132,17 @@ Every time the user visits the Dashboard, a background process runs to analyze t
 3. **Transcript Recording:** Modify `backend/coach_live.py` inside `_relay_gemini_turns` to append finished user/assistant turns directly into SQLite.
 4. **System Instruction Builder:** Update `build_live_config` to inject current aspects, vision, and `state.memory` into the system prompt.
 5. **Background Analyzer:** Implement the async updater in a new module and attach it to the `GET /api/user/state` endpoint in `backend/main.py`. 
+6. **Transcript Sync & Layout Refactor**: Implement the word-buffer paced queue in `Coach.js` and move the display layout below the central morphing blob.
+
+---
+
+## 6. Transcript Synchronization & Layout (Option 2)
+
+### A. Subtitle Layout Placement
+To prevent jitter and character clipping inside the avatar blob, subtitles are removed from the central morphing circle and displayed in a dedicated text layout container located directly below the blob and above the bottom controls. The central blob becomes a pure visual speaker-state node.
+
+### B. Word-by-Word Paced Queue
+To align instantly streamed WebSocket tokens with natural speech audio playback:
+1. **Token Buffering**: As text is received from the WebSocket, a word queue parses and holds new words.
+2. **Typewriter Effect**: A dequeuing loop appends one word at a time to the displayed transcript at a constant pacing interval (e.g. 300ms per word).
+3. **Turn Retention**: The completed sentence is retained on screen until a new user/assistant speech turn begins, at which point the display is reset.

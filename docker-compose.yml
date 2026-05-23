@@ -1,0 +1,52 @@
+# Compose Specification (v2023.9+)
+# https://docs.docker.com/compose/compose-file/
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: wheel-of-life-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+    restart: unless-stopped
+    networks:
+      - wheel-of-life-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wheel-of-life-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./backend/data:/app/data
+    restart: unless-stopped
+    networks:
+      - wheel-of-life-network
+
+  db-admin:
+    image: coleifer/sqlite-web
+    container_name: wheel-of-life-db-admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/data:/data
+    environment:
+      - SQLITE_DATABASE=db.sqlite
+    restart: unless-stopped
+    networks:
+      - wheel-of-life-network
+
+networks:
+  wheel-of-life-network:
+    driver: bridge

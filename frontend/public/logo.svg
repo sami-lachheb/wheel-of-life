@@ -1,0 +1,13 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="90" fill="#00312C" />
+  <circle cx="100" cy="100" r="85" fill="none" stroke="#FFD700" strokeWidth="2" />
+  <path d="M100,100 L100,10" stroke="#FFD700" strokeWidth="2" />
+  <path d="M100,100 L190,100" stroke="#FFD700" strokeWidth="2" />
+  <path d="M100,100 L100,190" stroke="#FFD700" strokeWidth="2" />
+  <path d="M100,100 L10,100" stroke="#FFD700" strokeWidth="2" />
+  <circle cx="100" cy="10" r="5" fill="#FFD700" />
+  <circle cx="190" cy="100" r="5" fill="#FFD700" />
+  <circle cx="100" cy="190" r="5" fill="#FFD700" />
+  <circle cx="10" cy="100" r="5" fill="#FFD700" />
+  <text x="100" y="115" text-anchor="middle" fill="#FFD700" font-family="Arial" font-size="14" font-weight="bold">Wheel of Life</text>
+</svg>

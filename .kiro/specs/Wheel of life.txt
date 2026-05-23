@@ -1,0 +1,81 @@
+Wheel of life: 
+
+Mission: How good are you at what you're doing.
+
+
+
+onboarding:
+Hello let's talk about your wheel of life, let's talk about you ? ill give you some fields for you to choose from , describe your ultimate vision for example in plain text+Suggestions.
+
+The model knows if your vision is complete or can be further interrogated by the model to make sure the vision is ACTUALLY achieved.
+
+
+in each aspect we set the vision.
+
+The model can summarize the vision into one word, ultimately creating/editing the wheel of life after summarizing each aspect.
+
+
+
+during each week the model has decided and set his expectations for the user.
+
+the user describes his day, the agent (journal) relates to each aspect.
+
+and adds or reduces the score. 
+
+ideally the user should progress daily. 
+
+
+Journal agent fetch user context, summarize and organize & contextualize format the raw journal into a structured recap.
+
+Conversation agent (coach Female voice)
+ 
+Scoring agent (wheel of life expert) Agent that can tweak the score
+
+Journal: Questions to guide the user to write the journal, or optional fields
+{#00312C
+Title: 
+Raw journal:
+Emotion: General -> why ? specific "Selection"-> what's having the biggest impact on you
+Image:
+location: 
+vocal:
+doodle:
+}
+
+to help guide the user -> summary card template 
+eg: 
+
+https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSiAh8GsqyGno5VBRKdjqdYo0VS0PZu1TKUEA&s
+
+
+{
+
+ Title: 30 chars
+each Action: 150 char
+
+Each emotion: 150 char
+
+each cause: 70 
+
+Fields (id) affected from the wheel of life eg {health,finance,etc...}
+
+}
+
+While the user is talking to the coach (once a week)
+Productivity agent, can extract tasks weekly with the coach and store them in the task planner
+
+{
+task name:
+Description:
+Priority: 
+Deadline:
+field (wheel of life)
+
+}
+
+The coach agent:
+
+
+
+Green : #00312C
+gold :#FFD700

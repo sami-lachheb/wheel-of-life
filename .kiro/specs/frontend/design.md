@@ -1,0 +1,388 @@
+# Frontend Design - Wheel of Life
+
+## Tech Stack
+
+- **Framework**: React 18+ (JavaScript, no TypeScript)
+- **Styling**: Tailwind CSS
+- **State**: React Context + useReducer
+- **Routing**: React Router v6
+- **UI Components**: Custom (Tailwind-based) + Lucide Icons
+
+## Design Philosophy
+
+- **Mobile-Only Frame**: The entire frontend application is constrained to a mobile viewport aspect ratio (`max-w-[430px] w-full min-h-screen mx-auto bg-light-gray shadow-2xl relative flex flex-col`) centered on screen, with a dark slate background (`bg-slate-900`) filling the desktop space.
+- **Touch-First Elements**: Layouts are optimized for compact mobile ratios (e.g. tight vertical paddings, compact margins, and touch-friendly controls).
+
+---
+
+## Docker Compose Configuration
+
+```yaml
+# Compose Specification (v2023.9+) - Legacy 3.x versions merged into spec
+# https://docs.docker.com/compose/compose-file/
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: wheel-of-life-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    restart: unless-stopped
+    networks:
+      - wheel-of-life-network
+
+networks:
+  wheel-of-life-network:
+    driver: bridge
+```
+
+---
+
+## Directory Structure
+
+```
+frontend/
+├── public/
+│   ├── favicon.ico
+│   └── logo.svg
+├── src/
+│   ├── assets/
+│   │   ├── logo/
+│   │   └── images/
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── Footer.tsx
+│   │   │   └── Container.tsx
+│   │   ├── ui/
+│   │   │   ├── Button.tsx
+│   │   │   ├── Input.tsx
+│   │   │   ├── Textarea.tsx
+│   │   │   ├── Card.tsx
+│   │   │   └── WheelVisualization.tsx
+│   │   └── onboarding/
+│   │       ├── VisionInput.tsx
+│   │       └── AspectSelector.tsx
+│   ├── pages/
+│   │   ├── LandingPage.tsx
+│   │   ├── Onboarding.tsx
+│   │   ├── Journal.tsx
+│   │   ├── Coach.tsx
+│   │   └── Dashboard.tsx
+│   ├── contexts/
+│   │   ├── UserContext.tsx
+│   │   └── ThemeContext.tsx
+│   ├── hooks/
+│   │   ├── useApi.ts
+│   │   └── useWheel.ts
+│   ├── utils/
+│   │   ├── api.ts
+│   │   └── validators.ts
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+├── Dockerfile
+├── package.json
+└── vite.config.ts
+```
+
+---
+
+## Color Palette
+
+| Name | Hex | Usage |
+|------|-----|-------|
+| Vibrant Indigo | `#6366f1` | Main brand color, buttons, accents |
+| Sunset Orange/Coral | `#f97316` | Highlights, success states, special elements |
+| White | `#FFFFFF` | Backgrounds, text on dark |
+| Light Gray | `#F5F5F5` | Secondary backgrounds |
+| Dark Gray | `#333333` | Primary text |
+
+---
+
+## Landing Page (Onboarding Entry Point)
+
+### Layout
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Navbar (transparent, scrolls with content)                 │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  [LOGO - Full Screen, Centered]                             │
+│                                                             │
+│  "Wheel of Life"                                            │
+│  Your journey to balanced living                            │
+│                                                             │
+│  [Scroll Down Indicator]                                    │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Feature Highlights (scrollable)                            │
+│  - Journaling                                               │
+│  - Habit Tracking                                           │
+│  - Life Coach                                               │
+│  - Wheel Visualization                                      │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  Footer                                                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Navbar
+
+- Constrained fixed width (`fixed top-0 left-0 right-0 max-w-[430px] mx-auto w-full z-50`) to match the centered mobile container.
+- Mobile-only implementation: The desktop navigation layout is disabled, forcing the mobile hamburger toggle button and slide-down drawer layout to stay active across all desktop and mobile viewport sizes.
+
+### Hero Section
+
+- Logo: 60vh height, centered
+- Tagline: "How good are you at what you're doing?"
+- Scroll indicator: Animated arrow
+
+### Feature Cards (Scrollable)
+
+Each card includes:
+- Icon
+- Title
+- Short description
+- "Learn More" link
+
+---
+
+## Onboarding Flow
+
+### Step 1: Aspect Selection
+
+**URL**: `/onboarding/aspects`
+
+**Components**:
+- Header: "Which areas of your life are most important to you?"
+- Multi-select grid of life aspects (health, finance, relationships, etc. - select 3 to 10)
+- Next button
+
+**Features**:
+- Suggests/requires at least 3 aspects before moving forward.
+
+### Step 2: Aspect Rating & Specific Visions (Focus Mode)
+
+**URL**: `/onboarding/rates`
+
+**Components**:
+- Distraction-Free Layout: Header, footer, and navigation menus are hidden.
+- One aspect per screen.
+- Satisfaction score rating selection (slider 1-10).
+- Text area to input the specific target vision for the current aspect.
+- Progress indicator showing current aspect rating step.
+- Back and Next/Continue navigation buttons.
+
+### Step 3: Wheel Preview
+
+**URL**: `/onboarding/preview`
+
+**Components**:
+- Interactive wheel visualization
+- Hover details for segment satisfaction
+- Aspect summary list
+- Finish & Save button
+- **Authentication Gate**: Prompt user to sign up or log in *after* previewing their wheel to persist their onboarding progress to the database and transition to the Dashboard.
+
+---
+
+## Navigation Structure
+
+```
+Landing (/)
+├── About (/about)
+└── Get Started (/onboarding)
+    ├── Aspects (/onboarding/aspects)
+    ├── Rates (/onboarding/rates)
+    └── Preview (/onboarding/preview)
+
+Dashboard (/dashboard)
+├── Journal (/journal)
+├── Coach (/coach)
+├── Wheel (/wheel)
+└── Tasks (/tasks)
+```
+
+### Dashboard Features & Layout
+- **Daily Companion Greeting & State of Mind Check-in**:
+  * Displays user greeting ("Hello, {username}") alongside a row of 5 mood check-in emoji buttons (`rough`, `low`, `okay`, `good`, `great`).
+  * Tapping any of the 5 emoji buttons launches the unified, three-step `EmotionSelectorSheet` modal to enter rich details and context.
+  * Once submitted, the dashboard lists the selected specific tags beneath the emoji check-in row to reinforce awareness.
+- **Dynamic Focus Card**:
+  * Targets the user's lowest-scored life aspect dynamically.
+  * Displays aspect name, satisfaction score, target vision description, and a personalized task/reflection call to action.
+- **Streak Tracker ("Your Week")**:
+  * A horizontal calendar strip showing the last 7 days. Displays a small indicator dot above day capsules that have completed journal entries recorded.
+- **Asymmetric Grid (Execution & Insight)**:
+  * **Left Column (Tall Card)**: Static compact `WheelVisualization` component display acting as a visual anchor.
+  * **Right Column (Stacked Cards)**:
+    * **Active Goals**: Displays the top 2-3 incomplete tasks with interactive toggle checkboxes.
+    * **Coach Tip**: A personalized micro-reflection prompt generated based on lowest aspect ratings.
+- **Floating Bottom Navigation Bar**:
+  * Relocates navigation links into a persistent bottom capsule (`fixed bottom-6 w-[90%] z-50 rounded-full bg-slate-900/95 backdrop-blur-md`) featuring bubble highlight states for active routes.
+
+### Feature Navigation
+- **Previous Navigation Pill**:
+  * Every core feature page (Journaling, Coach session, Wheel editor, Task manager) contains a standardized, dark-pill navigation element at the top left (`ArrowLeft` icon + "Previous") bound to `navigate(-1)` for unified, browser-independent mobile back-navigation.
+
+### Journal Entry Page Layout & Flow
+- **Minimalistic Screen Canvas**:
+  * The writing workspace occupies 100% of the viewport. Borders, input fields, card structures, and page headers are removed in favor of a clean, notebook-app feel.
+- **Top Action Bar**:
+  * Left: A compact "Previous" back-navigation button pill.
+  * Center: Faintly colored current date stamp.
+  * Right: A text-only "Save" button that lights up/activates dynamically once writing content has been entered.
+- **Borderless Writing Canvas**:
+  * **Title Input**: A bold, borderless single-line input field utilizing placeholders ("Untitled Entry") that auto-clears. Maximum length 30 characters.
+  * **Body Workspace**: A full-height, borderless, transparent textarea that scales dynamically with content.
+- **Contextual Journal Toolbar**:
+  * The global navigation bar hides completely on `/journal`.
+  * Mounted instead is a journal-specific floating toolbar capsule (`fixed bottom-6 w-[90%] bg-slate-900/95 rounded-full`) containing contextual tools:
+    * **Mood & Emotion Sheet Toggle**: Triggers a bottom-sheet slide overlay.
+    * **Location Tagging Input**: Toggles a micro-overlay to attach present surroundings.
+    * **Voice Record**: Triggers audio input mechanics (future phase).
+    * **AI Aspect Reflector**: Triggers real-time mapping suggestion cards.
+- **Interactive Emotion Selector Flow (EmotionSelectorSheet)**:
+  * Triggers a full-width overlay modal shared between the Journal editor and the Dashboard.
+  * **Screen 1 (General Mood Slider)**: Uses a range slider (1 to 5) to adjust pleasantness from "Very Unpleasant" to "Very Pleasant". Visualizes mood using a central, morphing organic 3D blossom shifting color and size relative to the selected pleasantness index (no direct emojis on the main canvas).
+  * **Screen 2 (Feeling Descriptors)**: A tag cloud presenting rich emotional vocabulary (e.g. Grateful, Lonely, Stressed) mapped to the selected pleasantness tier to build emotional intelligence. Includes multiple-select toggles and a "Show More" expansion collapse.
+  * **Screen 3 (Life Impact & Context)**: A tag cloud of contributing life aspect factors (e.g. Work, Health, Hobbies) paired with an optional "Additional Context..." text area.
+  * Persists the combined state and collapses cleanly on submission.
+
+### Coach Page Layout & Flow
+- **Hayat Liquid Fluid Interface**:
+  * Emulates a live audio coaching session viewport set against a pure black background. The global navbar hides completely.
+  * **Centered Fluid Blob**: An organic, morphing liquid blob centered on the screen styled with a gradient from Blue (`#2563eb`) to Fuchsia (`#d946ef`).
+  * **Branding & Status**: Displays "Hi, I'm Hayat" with a transparent badge indicating "an AI Assistant" and a downward chevron.
+  * **Dynamic Subtitle Morphing**: When Hayat is speaking, the branding smoothly fades out and the transcription subtitles display directly in the center of the morphing shape.
+  * **Voice Pulse Glow**: A background indigo glow sphere scales up and down based on the state of speaking active.
+- **Call Controls Panel (Bottom Overlay)**:
+  * A 3-column minimalist grid containing the following actions:
+    * **Mute Microphone**: Toggles mic state (shows Mic when open, `X` when muted).
+    * **Hold Session**: Toggles pause/play state (shows Pause when active, Play when held; pauses voice playback and animation loops).
+    * **Toggle Keyboard Input**: Opens a text bar overlay to type responses manually to chat with the model.
+- **Top Utility Header**:
+  * Includes back/previous navigation on the left, and a Goals list toggle button (`ListTodo`) paired with an active status badge on the right.
+
+---
+
+## Component Specifications
+
+### Logo Component
+
+```tsx
+<Logo size="large" />
+// Props: size: 'small' | 'medium' | 'large' | 'full'
+```
+
+- SVG format
+- Indigo circle with orange/coral wheel icon
+- Optional text: "Wheel of Life"
+
+### Navbar Component
+
+```tsx
+<Navbar 
+  transparent={true} 
+  scrolled={false} 
+  links={['Home', 'Features', 'About', 'Get Started']} 
+/>
+```
+
+### Card Component
+
+```tsx
+<Card 
+  title="Health & Fitness" 
+  description="Your physical wellbeing" 
+  score={7} 
+  color="green"
+/>
+```
+
+### Wheel Visualization Component
+
+```tsx
+<Wheel 
+  aspects={aspects} 
+  editable={false} 
+  onClick={handleAspectClick} 
+/>
+```
+
+---
+
+## Responsive Design
+
+| Breakpoint | Width | Layout Changes |
+|------------|-------|----------------|
+| Mobile | < 768px | Single column, stacked cards |
+| Tablet | 768-1024px | 2-column grid |
+| Desktop | > 1024px | Full width, side-by-side |
+
+---
+
+## State Management
+
+### UserContext
+
+```typescript
+interface UserState {
+  aspects: Aspect[];
+  vision: string;
+  currentWheel: WheelData;
+  completedOnboarding: boolean;
+}
+```
+
+### ThemeContext
+
+```typescript
+interface ThemeState {
+  primaryColor: string;
+  accentColor: string;
+  isDarkMode: boolean;
+}
+```
+
+---
+
+## API Integration
+
+```typescript
+// POST /api/onboarding/vision
+{
+  "vision": "I want to be healthy and balanced",
+  "aspects": ["health", "finance", "relationships"]
+}
+
+// GET /api/wheel
+{
+  "aspects": [
+    { "name": "health", "score": 7, "vision": "Healthy" },
+    { "name": "finance", "score": 5, "vision": "Secure" }
+  ]
+}
+```
+
+---
+
+## Future Enhancements
+
+- Voice journal input
+- Doodle canvas
+- Emotion selector
+- Location tagging
+- Weekly summary cards
+- Progress animations

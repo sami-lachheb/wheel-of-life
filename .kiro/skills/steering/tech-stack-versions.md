@@ -1,0 +1,1 @@
+/home/sami/Desktop/GSCLP/main-repo/.kiro/steering/tech-stack-versions.md

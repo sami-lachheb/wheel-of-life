@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "llm-application-dev-langchain-agent",
+  "owner": "sickn33",
+  "repo": "antigravity-awesome-skills",
+  "path": "plugins/antigravity-awesome-skills-claude/skills/llm-application-dev-langchain-agent",
+  "branch": "main",
+  "sha": "e9eff3ea9b15823d941ddce338431d4f89231278",
+  "source": "manual"
+}
